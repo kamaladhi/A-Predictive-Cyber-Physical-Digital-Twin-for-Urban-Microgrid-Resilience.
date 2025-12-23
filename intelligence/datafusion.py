@@ -23,13 +23,13 @@ class FusionMetrics:
 
 class DataFusionEngine:
     """
-    PAPER-COMPLIANT Data Fusion Engine
-    Implements Unscented Transform (UT) for uncertainty propagation
+    -COMPLIANT Data Fusion Engine
+    Implements UT-inspired uncertainty propagation suitable for real-time Digital Twins
     Key capabilities:
     1. Anomaly detection
     2. Data quality assessment with uncertainty
     3. Predictive validation
-    4. UT-based uncertainty propagation (paper requirement)
+    4. UT-based uncertainty propagation ( requirement)
     """
     
     def __init__(self, redis_client=None):
@@ -43,14 +43,14 @@ class DataFusionEngine:
         # Thresholds
         self.anomaly_threshold_std = 2.5
         self.min_data_quality = 0.7
-        self.high_uncertainty_threshold = 0.2  # ADDED - paper's uncertainty handling
+        self.high_uncertainty_threshold = 0.2  # ADDED - 's uncertainty handling
         
-        logger.info("Data Fusion Engine initialized (Paper-compliant with UT)")
+        logger.info("Data Fusion Engine initialized (-compliant with UT)")
     
     def fuse_current_state(self, state: MicrogridState) -> FusionMetrics:
         """
         Analyze current state with uncertainty propagation
-        Implements paper's Unscented Transform methodology
+        Implements 's Unscented Transform methodology
         """
         metrics = FusionMetrics(
             data_quality_score=0.0,
@@ -79,12 +79,12 @@ class DataFusionEngine:
                 accuracy = self._validate_forecast_accuracy(state)
                 metrics.prediction_accuracy = accuracy
             
-            # 5. PAPER REQUIREMENT: Apply Unscented Transform for uncertainty
+            # 5. UT-inspired uncertainty propagation
             solar_ut_std = self._apply_unscented_transform(state, 'solar')
             wind_ut_std = self._apply_unscented_transform(state, 'wind')
             load_ut_std = self._apply_unscented_transform(state, 'load')
             
-            # Check if uncertainty is too high (paper's threshold)
+            # Check if uncertainty is too high ('s threshold)
             if solar_ut_std > self.high_uncertainty_threshold or \
                wind_ut_std > self.high_uncertainty_threshold:
                 metrics.anomaly_count += 1
@@ -104,7 +104,7 @@ class DataFusionEngine:
     def _apply_unscented_transform(self, state: MicrogridState, variable: str = 'solar') -> float:
         """
         Propagate uncertainty using Unscented Transform
-        This is the PAPER'S METHOD for RER/market/load modeling
+        This is the  METHOD for RER/market/load modeling
         
         The UT propagates uncertainty through non-linear transformations
         (e.g., generation * price = cost) more accurately than linearization
@@ -144,7 +144,7 @@ class DataFusionEngine:
             0.5 / (1 + lambda_param)
         ])
         
-        # Non-linear transform: cost under uncertainty (paper's market expenses)
+        # Non-linear transform: cost under uncertainty ('s market expenses)
         # Transform: generation/load * price
         current_price = state.grid.current_price
         price_uncertainty = state.grid.price_uncertainty or (current_price * 0.05)
@@ -223,8 +223,8 @@ class DataFusionEngine:
         
         if abs(unexplained) > 0.5:
             logger.warning(f"Unexplained load: {unexplained:.2f}kW "
-                          f"(Total: {state.total_load:.2f}kW, "
-                          f"Appliances: {appliance_sum:.2f}kW)")
+                        f"(Total: {state.total_load:.2f}kW, "
+                        f"Appliances: {appliance_sum:.2f}kW)")
         
         return unexplained
     
@@ -283,7 +283,7 @@ class DataFusionEngine:
                 'timestamp': state.timestamp
             })
         
-        # 6. ADDED: High uncertainty anomaly (paper requirement)
+        # 6. ADDED: High uncertainty anomaly ( requirement)
         total_uncertainty = (
             state.total_load_uncertainty +
             state.generation.solar_uncertainty +

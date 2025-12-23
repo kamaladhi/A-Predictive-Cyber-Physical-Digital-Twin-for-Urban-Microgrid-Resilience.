@@ -84,21 +84,26 @@ class StateSynchronizer:
             # Update appliances
             self.current_state.appliances.clear()
             
-            for name, power in nilm_data['appliances'].items():
-                # Determine if appliance is shiftable
-                is_shiftable = self._is_appliance_shiftable(name)
-                priority = self._get_appliance_priority(name)
-                
+            for name, value in nilm_data["appliances"].items():
+                if isinstance(value, dict):
+                    power = value.get("power", 0.0)
+                    uncertainty = value.get("uncertainty", 0.0)
+                else:
+                    power = value
+                    uncertainty = 0.0
+
                 appliance = ApplianceState(
                     name=name,
                     power=power,
-                    status='on' if power > 0.01 else 'off',
-                    is_shiftable=is_shiftable,
-                    priority=priority
+                    uncertainty=uncertainty,
+                    status="on" if power > 0.01 else "off",
+                    is_shiftable=self._is_appliance_shiftable(name),
+                    priority=self._get_appliance_priority(name)
                 )
-                
+
                 self.current_state.appliances[name] = appliance
-            
+
+                        
             # Recalculate power balance
             self.current_state.calculate_power_balance()
             self.current_state.update_metrics()
