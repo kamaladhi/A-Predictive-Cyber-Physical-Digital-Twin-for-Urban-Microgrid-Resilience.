@@ -1,0 +1,17 @@
+{
+  "outage_duration_hours": 11.0,
+  "critical_load_served_percent": 71.21885149498894,
+  "load_shed_events": 132,
+  "max_shed_load_kw": 117.6553220180997,
+  "avg_shed_load_kw": 117.6553220180997,
+  "min_battery_soc_percent": 20.000344392421713,
+  "battery_cycles": 0.2720229745644464,
+  "generator_runtime_hours": 10.916666666666666,
+  "generator_fuel_consumed_liters": 1069.222308197449,
+  "survival_time_hours": 11.0,
+  "survived_full_outage": false,
+  "total_load_energy_kwh": 9162.815957238345,
+  "total_pv_energy_kwh": 3230.1,
+  "total_grid_energy_kwh": 1026.829326918763,
+  "pv_penetration_percent": 35.25226322425826
+}
