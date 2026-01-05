@@ -1,0 +1,12 @@
+timestamp,microgrid_id,command_type,value_kw,reason,alert_ids,notes
+2026-01-05T14:37:34.985156,hospital_0,battery_setpoint_kw,200.0,High cost/peak mitigation,"COST_hospital_0_20260105143734,RESIL_hospital_0_20260105143734","SOC 65.0%, net import 320.0 kW"
+2026-01-05T14:37:34.985156,hospital_0,shed_non_critical_kw,52.0,Protect runtime / critical loads,"COST_hospital_0_20260105143734,RESIL_hospital_0_20260105143734",Non-critical available 130.0 kW
+2026-01-05T14:37:37.150153,hospital_0,battery_setpoint_kw,200.0,High cost/peak mitigation,"COST_hospital_0_20260105143737,RESIL_hospital_0_20260105143737","SOC 55.0%, net import 600.0 kW"
+2026-01-05T14:37:37.150153,hospital_0,shed_non_critical_kw,52.0,Protect runtime / critical loads,"COST_hospital_0_20260105143737,RESIL_hospital_0_20260105143737",Non-critical available 130.0 kW
+2026-01-05T14:37:39.364416,hospital_0,shed_non_critical_kw,52.0,Protect runtime / critical loads,"COST_hospital_0_20260105143739,BATTERY_hospital_0_20260105143739,RESIL_hospital_0_20260105143739",Non-critical available 130.0 kW
+2026-01-05T14:37:39.364416,hospital_0,start_generator,,"Critical SOC, start backup","COST_hospital_0_20260105143739,BATTERY_hospital_0_20260105143739,RESIL_hospital_0_20260105143739",SOC 15.0%
+2026-01-05T15:36:59.154604,hospital_0,shed_non_critical_kw,39.0,Protect runtime / critical loads,RESIL_hospital_0_20260105153659,Non-critical available 130.0 kW
+2026-01-05T15:36:59.156619,university_0,battery_setpoint_kw,200.0,High cost/peak mitigation,"COST_university_0_20260105153659,RESIL_university_0_20260105153659","SOC 35.0%, net import 600.0 kW"
+2026-01-05T15:36:59.156619,university_0,shed_non_critical_kw,130.0,Protect runtime / critical loads,"COST_university_0_20260105153659,RESIL_university_0_20260105153659",Non-critical available 260.0 kW
+2026-01-05T15:36:59.156619,industry_0,battery_setpoint_kw,200.0,High cost/peak mitigation,"COST_industry_0_20260105153659,RESIL_industry_0_20260105153659","SOC 55.0%, net import 330.0 kW"
+2026-01-05T15:36:59.156619,industry_0,shed_non_critical_kw,180.0,Protect runtime / critical loads,"COST_industry_0_20260105153659,RESIL_industry_0_20260105153659",Non-critical available 450.0 kW

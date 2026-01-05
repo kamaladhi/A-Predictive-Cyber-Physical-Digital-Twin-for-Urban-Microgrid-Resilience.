@@ -1,0 +1,1 @@
+timestamp,microgrid_id,load_kw,pv_kw,battery_kw,soc_percent,grid_power_kw,is_islanded,power_balance_kw

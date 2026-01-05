@@ -6,9 +6,9 @@ import sys
 import numpy as np
 import os
 
-from parameters import MicrogridConfig, create_default_config
-from microgrid_simulator import MicrogridSimulator
-from microgrid_visualizer import visualize_all_scenarios
+from Microgrid.university_microgrid.parameters import MicrogridConfig, create_default_config
+from Microgrid.university_microgrid.microgrid_simulator import MicrogridSimulator
+from Microgrid.university_microgrid.microgrid_visualizer import visualize_all_scenarios
 
 logging.basicConfig(
     level=logging.INFO,

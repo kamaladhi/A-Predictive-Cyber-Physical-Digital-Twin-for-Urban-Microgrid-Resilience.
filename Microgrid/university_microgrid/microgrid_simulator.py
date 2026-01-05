@@ -5,9 +5,9 @@ from typing import Dict, List, Optional
 import json
 import logging
 
-from parameters import MicrogridConfig
-from microgrid_components import Battery, PVArray, Generator, Load, ComponentState
-from microgrid_ems import EnergyManagementSystem, OperationMode
+from Microgrid.university_microgrid.parameters import MicrogridConfig
+from Microgrid.university_microgrid.microgrid_components import Battery, PVArray, Generator, Load, ComponentState
+from Microgrid.university_microgrid.microgrid_ems import EnergyManagementSystem, OperationMode
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -329,7 +329,7 @@ class MicrogridSimulator:
 def main():
     """Main simulation entry point"""
     # Create configuration
-    from parameters import create_default_config
+    from Microgrid.university_microgrid.parameters import create_default_config
     config = create_default_config()
     
     # Create simulator

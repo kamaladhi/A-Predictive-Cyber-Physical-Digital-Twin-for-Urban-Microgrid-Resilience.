@@ -1,0 +1,174 @@
+{
+  "facility_name": "Automotive Component Manufacturing",
+  "facility_type": "Mid-scale Industrial Plant",
+  "location": "Pune, Maharashtra, India",
+  "latitude": 18.5204,
+  "longitude": 73.8567,
+  "timezone": "Asia/Kolkata",
+  "nominal_voltage_kv": 11,
+  "nominal_frequency_hz": 50,
+  "power_factor": 0.85,
+  "microgrid_priority": 3,
+  "can_curtail_load": true,
+  "max_curtailment_percent": 68,
+  "curtailment_notice_minutes": 15,
+  "restart_time_minutes": 30,
+  "load_profile": {
+    "hour_blocks": [
+      [
+        0,
+        6,
+        720
+      ],
+      [
+        6,
+        8,
+        650
+      ],
+      [
+        8,
+        16,
+        850
+      ],
+      [
+        16,
+        22,
+        780
+      ],
+      [
+        22,
+        24,
+        680
+      ]
+    ],
+    "critical_loads": {
+      "cnc_machines": 80,
+      "powder_coating_ovens": 60,
+      "compressed_air": 35,
+      "process_cooling": 25,
+      "it_erp_mes": 12,
+      "safety_emergency": 8
+    },
+    "load_categories": {
+      "critical_production": {
+        "power_kw": 220,
+        "max_shed_percent": 0,
+        "priority": 1
+      },
+      "metal_stamping": {
+        "power_kw": 120,
+        "max_shed_percent": 100,
+        "priority": 3
+      },
+      "hvac_production": {
+        "power_kw": 180,
+        "max_shed_percent": 80,
+        "priority": 4
+      },
+      "material_handling": {
+        "power_kw": 60,
+        "max_shed_percent": 70,
+        "priority": 4
+      },
+      "assembly_lines": {
+        "power_kw": 50,
+        "max_shed_percent": 100,
+        "priority": 5
+      },
+      "office_hvac": {
+        "power_kw": 30,
+        "max_shed_percent": 100,
+        "priority": 5
+      },
+      "canteen_welfare": {
+        "power_kw": 20,
+        "max_shed_percent": 100,
+        "priority": 5
+      }
+    },
+    "hvac_production_kw": 180,
+    "metal_stamping_kw": 120,
+    "material_handling_kw": 60,
+    "assembly_lines_kw": 50,
+    "office_hvac_kw": 30,
+    "canteen_welfare_kw": 20
+  },
+  "battery": {
+    "nominal_capacity_kwh": 1800,
+    "usable_capacity_kwh": 1620.0,
+    "max_discharge_power_kw": 400.0,
+    "max_charge_power_kw": 400.0,
+    "round_trip_efficiency": 0.92,
+    "min_soc_percent": 10,
+    "max_soc_percent": 90,
+    "initial_soc_percent": 80
+  },
+  "pv": {
+    "installed_capacity_kwp": 600,
+    "panel_efficiency": 0.22,
+    "inverter_efficiency": 0.98,
+    "temperature_coefficient": -0.0038,
+    "nominal_operating_temp": 47,
+    "design_insolation_kwh_m2_day": 5.0,
+    "tilt_angle": 15.0
+  },
+  "generator": {
+    "gen1_rated_power_kw": 500,
+    "gen1_rated_power_kva": 625,
+    "gen2_rated_power_kw": 500,
+    "gen2_rated_power_kva": 625,
+    "fuel_consumption_l_per_kwh": 0.24,
+    "min_load_ratio": 0.3,
+    "startup_time_seconds": 15,
+    "cooldown_time_seconds": 300,
+    "auto_start_soc_threshold": 30,
+    "auto_stop_soc_threshold": 75,
+    "min_on_time_minutes": 60,
+    "min_off_time_minutes": 30,
+    "fuel_tank_capacity_liters": 5000
+  },
+  "control": {
+    "backup_duration_hours": 7.4,
+    "time_resolution_minutes": 5,
+    "islanding_detection_time_ms": 50,
+    "reconnection_delay_seconds": 300,
+    "load_shedding_priority": [
+      "canteen_welfare",
+      "office_hvac",
+      "assembly_lines",
+      "material_handling",
+      "hvac_production",
+      "metal_stamping",
+      "critical_production"
+    ],
+    "frequency_droop_coefficient": 0.05,
+    "voltage_droop_coefficient": 0.03,
+    "enable_load_shedding": true,
+    "enforce_critical_load_priority": true,
+    "max_total_shed_kw": 460,
+    "load_shed_step_kw": 50,
+    "battery_soc_target_percent": 70,
+    "battery_charge_from_grid": true,
+    "battery_discharge_min_soc": 10,
+    "battery_night_reserve_soc": 40,
+    "restore_time_min": 5,
+    "restore_margin_ratio": 1.2
+  },
+  "protection": {
+    "under_voltage_threshold_pu": 0.85,
+    "over_voltage_threshold_pu": 1.15,
+    "under_frequency_threshold_hz": 48.5,
+    "over_frequency_threshold_hz": 51.5,
+    "over_current_ratio": 1.8,
+    "reconnection_voltage_window_pu": [
+      0.92,
+      1.08
+    ],
+    "reconnection_frequency_window_hz": [
+      49.5,
+      50.5
+    ],
+    "critical_load_isolation_time_ms": 200,
+    "backup_power_transfer_time_ms": 100
+  }
+}

@@ -1,12 +1,15 @@
 import json
-from dataclasses import dataclass, asdict
-from typing import Dict, List
+from dataclasses import dataclass, asdict, field
+from typing import Dict, List, Tuple
 
 @dataclass
 class LoadProfile:
-    """24-hour load profile configuration"""
+    """24-hour load profile configuration with shedding limits"""
     hour_blocks: List[tuple] = None
     critical_loads: Dict[str, float] = None
+    
+    # Load categories with shedding limits
+    load_categories: Dict[str, Dict] = None
 
     hvac_load_kw: float = 180
     labs_load_kw: float = 140
@@ -17,12 +20,12 @@ class LoadProfile:
         if self.hour_blocks is None:
             # (start_hour, end_hour, power_kw)
             self.hour_blocks = [
-                (0, 5, 160),
-                (5, 8, 260),
-                (8, 13, 520),
-                (13, 17, 600),
-                (17, 22, 420),
-                (22, 24, 240)
+                (0, 5, 160),      # Night: minimal
+                (5, 8, 260),      # Morning ramp
+                (8, 13, 520),     # Day peak
+                (13, 17, 600),    # Afternoon peak
+                (17, 22, 420),    # Evening
+                (22, 24, 240)     # Late night
             ]
         
         if self.critical_loads is None:
@@ -33,6 +36,40 @@ class LoadProfile:
                 'communication': 25,
                 'essential_hvac': 40,
                 'medical_clinic': 15
+            }
+        
+        if self.load_categories is None:
+            self.load_categories = {
+                'critical': {
+                    'power_kw': self.total_critical_load,
+                    'max_shed_percent': 0,      # Never shed
+                    'priority': 1
+                },
+                'hvac_essential': {
+                    'power_kw': 80,
+                    'max_shed_percent': 20,     # Can reduce 20%
+                    'priority': 2
+                },
+                'hvac_non_critical': {
+                    'power_kw': 100,
+                    'max_shed_percent': 80,     # Can shed 80%
+                    'priority': 4
+                },
+                'lighting': {
+                    'power_kw': 80,
+                    'max_shed_percent': 60,     # Can dim/shed 60%
+                    'priority': 5
+                },
+                'office_equipment': {
+                    'power_kw': 120,
+                    'max_shed_percent': 70,     # Can shed non-essential equipment
+                    'priority': 6
+                },
+                'lab_non_essential': {
+                    'power_kw': 60,
+                    'max_shed_percent': 90,     # Most labs can pause
+                    'priority': 7
+                }
             }
     
     @property
@@ -47,18 +84,25 @@ class LoadProfile:
     def average_load(self) -> float:
         total_energy = sum((block[1] - block[0]) * block[2] for block in self.hour_blocks)
         return total_energy / 24
+    
+    def get_category_shedding_potential(self, category: str) -> float:
+        """Get max kW that can be shed from a category"""
+        if category not in self.load_categories:
+            return 0
+        cat = self.load_categories[category]
+        return cat['power_kw'] * (cat['max_shed_percent'] / 100)
 
 @dataclass
 class BatteryConfig:
-    """Battery Energy Storage System configuration"""
-    nominal_capacity_kwh: float = 2000
-    usable_capacity_kwh: float = 1800
-    max_discharge_power_kw: float = 400
-    max_charge_power_kw: float = 400
-    round_trip_efficiency: float = 0.91
-    min_soc_percent: float = 20
-    max_soc_percent: float = 95
-    initial_soc_percent: float = 80
+    """Battery Energy Storage System configuration - Right-sized for 2-3h peak support"""
+    nominal_capacity_kwh: float = 600  # 550 usable / 0.9
+    usable_capacity_kwh: float = 550.0   # 2-3 hours at critical load (240 kW avg)
+    max_discharge_power_kw: float = 300.0  # Support peak critical load with margin
+    max_charge_power_kw: float = 300.0
+    round_trip_efficiency: float = 0.9025  # 0.95 * 0.95 charge/discharge
+    min_soc_percent: float = 15
+    max_soc_percent: float = 90
+    initial_soc_percent: float = 70
     
     @property
     def discharge_efficiency(self) -> float:
@@ -70,13 +114,13 @@ class BatteryConfig:
 
 @dataclass
 class PVConfig:
-    """Solar PV system configuration"""
-    installed_capacity_kwp: float = 600
-    panel_efficiency: float = 0.20
+    """Solar PV system configuration - Realistic Coimbatore sizing"""
+    installed_capacity_kwp: float = 400  # Realistic for campus (reduced from 600)
+    panel_efficiency: float = 0.22
     inverter_efficiency: float = 0.97
     temperature_coefficient: float = -0.004  # per °C
     nominal_operating_temp: float = 45  # °C
-    design_insolation_kwh_m2_day: float = 5.0
+    design_insolation_kwh_m2_day: float = 5.5  # Coimbatore ~5.5 peak sun hours/day
     
     @property
     def estimated_daily_generation_kwh(self) -> float:
@@ -84,18 +128,19 @@ class PVConfig:
 
 @dataclass
 class GeneratorConfig:
-    rated_power_kw: float = 600
-    rated_power_kva: float = 750
+    """Diesel Generator - sized for peak non-critical load + system losses"""
+    rated_power_kw: float = 400  # Covers peak load with battery support
+    rated_power_kva: float = 500
     fuel_consumption_l_per_kwh: float = 0.25
     min_load_ratio: float = 0.3
     startup_time_seconds: float = 15
     cooldown_time_seconds: float = 300
 
-    auto_start_soc_threshold: float = 35
-    auto_stop_soc_threshold: float = 60
+    auto_start_soc_threshold: float = 30  # Start when battery < 30%
+    auto_stop_soc_threshold: float = 75   # Stop when battery > 75%
 
     min_on_time_minutes: int = 30
-    min_off_time_minutes: int = 30
+    min_off_time_minutes: int = 20
 
     
     @property
@@ -104,8 +149,8 @@ class GeneratorConfig:
 
 @dataclass
 class ControlConfig:
-    """Energy Management System control parameters"""
-    backup_duration_hours: float = 6
+    """Energy Management System control parameters with shedding policy"""
+    backup_duration_hours: float = 3  # 3 hours critical load, 2 hours with partial shedding
     time_resolution_minutes: float = 5
     islanding_detection_time_ms: float = 100
     reconnection_delay_seconds: float = 300
@@ -113,15 +158,21 @@ class ControlConfig:
     frequency_droop_coefficient: float = 0.04
     voltage_droop_coefficient: float = 0.02
     
+    # Shedding policy
+    max_total_shed_kw: float = 360  # Can shed up to 60% of non-critical load
+    max_shed_percent_per_hour: float = 25  # Gradual curtailment
+    enforce_critical_load_priority: bool = True
+    
     def __post_init__(self):
         if self.load_shedding_priority is None:
-            # Priority order (1 = shed first, 5 = shed last)
+            # Priority order (1 = shed first, 7 = never shed)
             self.load_shedding_priority = [
-                'hvac_non_critical',
-                'general_lighting',
-                'office_equipment',
                 'lab_non_essential',
-                'hostel_loads'
+                'office_equipment',
+                'lighting',
+                'hvac_non_critical',
+                'hvac_essential',
+                'critical'
             ]
 
 @dataclass

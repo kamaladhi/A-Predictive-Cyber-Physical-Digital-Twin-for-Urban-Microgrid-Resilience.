@@ -1,0 +1,15 @@
+{
+  "scenario": "evening_peak_outage",
+  "duration_hours": 24,
+  "city_summary": {
+    "status": "critical",
+    "total_load_kw": 1733.0471969317207,
+    "total_available_kw": 317.1841164189764,
+    "load_served_kw": 828.7148717700119,
+    "load_shed_kw": 904.3323251617088,
+    "critical_load_served_kw": 880.0,
+    "critical_load_total_kw": 880.0,
+    "resilience_score": 0.8434551014947336
+  },
+  "coordination_points": 288
+}

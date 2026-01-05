@@ -1,0 +1,12 @@
+{
+  "scenario": "extended_outage_12h",
+  "duration_hours": 48.0,
+  "city_summary": {
+    "avg_load_served_kw": 1002.3544274705018,
+    "avg_load_shed_kw": 1113.9521475847926,
+    "resilience_score": 0.8430931193433997,
+    "critical_satisfaction_avg": 100.0,
+    "critical_satisfaction_min": 100.0
+  },
+  "coordination_points": 576
+}

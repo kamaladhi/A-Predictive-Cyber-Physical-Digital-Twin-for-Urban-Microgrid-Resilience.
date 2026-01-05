@@ -232,7 +232,7 @@ class EnergyManagementSystem:
         return 0
     
     def generator_dispatch_strategy(self):
-        from microgrid_components import ComponentState
+        from Microgrid.university_microgrid.microgrid_components import ComponentState
 
         soc = self.battery.soc_percent
 

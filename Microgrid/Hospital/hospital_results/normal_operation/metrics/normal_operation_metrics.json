@@ -1,0 +1,8 @@
+{
+  "total_load_energy_kwh": 41596.70728067132,
+  "total_pv_energy_kwh": 6460.2,
+  "total_grid_energy_kwh": 33308.82875831679,
+  "pv_penetration_percent": 15.530556196215684,
+  "critical_load_never_shed": true,
+  "max_non_critical_shed_percent": 0.0
+}
