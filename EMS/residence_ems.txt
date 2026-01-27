@@ -1,0 +1,67 @@
+Residential Community-Specific Features
+Time-of-Use Rate Optimization:
+
+Peak rate periods (5-9 AM, 5-11 PM): Discharge battery to avoid high electricity costs
+Off-peak periods (12-5 AM): Charge battery from grid at low rates
+Peak rate avoidance saves significant money for residents
+50% grid import reduction during peak hours
+
+Load Categories by Resident Impact:
+
+Critical Services (100 kW) - NEVER shed:
+
+Lifts/elevators (30 kW)
+Water pumps (25 kW)
+Emergency lighting (20 kW)
+Security systems (15 kW)
+Common services (10 kW)
+
+
+Comfort Loads (sheddable by priority):
+
+EV charging (120 kW) - Lowest priority, highest sheddability
+Air conditioning (280 kW) - High power, comfort load
+Washing machines (45 kW) - Deferrable appliances
+Common lighting (35 kW) - 80% sheddable
+
+
+
+EV Charging Management:
+
+First to shed during outages (zero resident disruption)
+Can be rescheduled to off-peak hours
+Smart charging to minimize peak demand
+100% sheddable without affecting essential services
+
+Resident-Friendly Shedding Strategy:
+
+Prioritizes minimizing disruption to daily life
+EV charging shed first (can charge later)
+AC shed next (temporary comfort reduction)
+Washing machines delayed (can run later)
+Lighting reduced but not eliminated
+Critical services (lifts, water, security) ALWAYS protected
+
+Grid-Connected Optimization:
+
+Solar self-consumption: Maximize PV usage to reduce bills
+Peak shaving: 50% battery discharge during expensive hours
+Off-peak charging: 40% charge rate during night (low cost)
+Community-wide savings on electricity bills
+
+Islanded Mode:
+
+Lower generator start threshold (20% SoC) - residential comfort priority
+Shorter minimum on-time (20 min) - residential generator sizing
+Higher restoration threshold (35% SoC) - conservative for resident comfort
+Moderate restoration margin (50%) - balance between reliability and comfort
+
+Battery Strategy:
+
+Backup duration: 4.5 hours target
+Grid-connected: Focus on cost savings (peak shaving, off-peak charging)
+Islanded: Focus on essential services and resident comfort
+Smaller battery (450 kWh) optimized for residential use
+
+Key Differences from Other Microgrids:
+FeatureHospitalUniversityIndustrialResidentialCritical Load320 kW320 kW220 kW100 kWFocusLife safetyEducationProductionComfort & CostLoad SheddingMedical priorityAcademic priorityProduction priorityDisruption priorityPeak ManagementNot criticalAcademic hoursDemand chargesRate avoidanceBattery UseBackup-firstPeak shavingCost optimizationBill reductionGen Start SoC25%25%30%20%

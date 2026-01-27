@@ -6,13 +6,8 @@ import sys
 import numpy as np
 import os
 
-# Ensure project root is on sys.path so `from Microgrid...` imports work
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-from industrial_parameters import MicrogridConfig, create_default_config
-from industrial_simulator import MicrogridSimulator
+from parameters import MicrogridConfig, create_default_config
+from hospital_simulator import MicrogridSimulator
 
 logging.basicConfig(
     level=logging.INFO,
@@ -165,7 +160,7 @@ def run_all_scenarios(config: MicrogridConfig, output_dir: str = '.'):
         json.dump(to_python(all_metrics), f, indent=2)
     
     logger.info(f"\n{'='*70}")
-    logger.info("ALL HOSPITAL SCENARIOS COMPLETE!")
+    logger.info("🏥 ALL HOSPITAL SCENARIOS COMPLETE!")
     logger.info(f"{'='*70}")
     
     return all_results, all_metrics
@@ -173,7 +168,7 @@ def run_all_scenarios(config: MicrogridConfig, output_dir: str = '.'):
 
 def run_custom_scenario(config: MicrogridConfig, args):
     """Run custom user-defined scenario"""
-    logger.info("\nRunning custom hospital scenario...")
+    logger.info("\n🏥 Running custom hospital scenario...")
     
     df, metrics = run_single_scenario(
         config,
@@ -191,7 +186,7 @@ def main():
     """Main entry point for hospital microgrid simulation"""
     
     parser = argparse.ArgumentParser(
-        description='Hospital Microgrid Simulator - Digital Twin Framework',
+        description='🏥 Hospital Microgrid Simulator - Digital Twin Framework',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -262,27 +257,27 @@ Hospital Critical Requirements:
     # Validate configuration
     warnings = config.validate()
     if warnings:
-        logger.warning("Configuration warnings:")
+        logger.warning("⚠️ Configuration warnings:")
         for w in warnings:
             logger.warning(f"  {w}")
     else:
-        logger.info("Hospital configuration validated successfully")
+        logger.info("✅ Hospital configuration validated successfully")
     
     # Print configuration summary
     logger.info("\n" + "="*70)
-    logger.info("HOSPITAL MICROGRID CONFIGURATION")
+    logger.info("🏥 HOSPITAL MICROGRID CONFIGURATION")
     logger.info("="*70)
     logger.info(f"Facility: {config.facility_name} ({config.facility_type})")
     logger.info(f"Location: {config.location}")
-    logger.info(f"\nLOAD PROFILE:")
+    logger.info(f"\n📊 LOAD PROFILE:")
     logger.info(f"  Peak Load: {config.load_profile.peak_load} kW")
     logger.info(f"  Average Load: {config.load_profile.average_load:.1f} kW")
-    logger.info(f"  CRITICAL: {config.load_profile.total_critical_load} kW (PROTECTED)")
+    logger.info(f"  🔴 CRITICAL: {config.load_profile.total_critical_load} kW (PROTECTED)")
     logger.info(f"  NON-CRITICAL: {config.load_profile.total_non_critical_load} kW")
-    logger.info(f"\nBATTERY: {config.battery.usable_capacity_kwh} kWh / {config.battery.max_discharge_power_kw} kW")
+    logger.info(f"\n🔋 BATTERY: {config.battery.usable_capacity_kwh} kWh / {config.battery.max_discharge_power_kw} kW")
     logger.info(f"  Critical Backup: {config.battery.critical_backup_hours:.1f} hours")
-    logger.info(f"\nSOLAR PV: {config.pv.installed_capacity_kwp} kWp")
-    logger.info(f"\nGENERATORS:")
+    logger.info(f"\n☀️ SOLAR PV: {config.pv.installed_capacity_kwp} kWp")
+    logger.info(f"\n⚡ GENERATORS:")
     logger.info(f"  Gen1 (Critical): {config.generator.gen1_rated_power_kw} kW")
     logger.info(f"  Gen2 (Non-Critical): {config.generator.gen2_rated_power_kw} kW")
     logger.info(f"  Total Capacity: {config.generator.total_capacity_kw} kW")
@@ -309,22 +304,22 @@ Hospital Critical Requirements:
         
         # Generate visualizations (if module available)
         try:
-            from industrial_visualizer import visualize_all_scenarios
-            logger.info("\nGenerating visualizations...")
+            from hospital_visualizer import visualize_all_scenarios
+            logger.info("\n📊 Generating visualizations...")
             try:
                 visualize_all_scenarios(results_dict, metrics_dict, output_dir=args.output_dir)
-                logger.info("Visualizations complete!")
+                logger.info("✅ Visualizations complete!")
             except TypeError:
                 visualize_all_scenarios(results_dict, metrics_dict)
         except ImportError:
-            logger.warning("Visualizer module not found - skipping visualizations")
+            logger.warning("⚠️ Visualizer module not found - skipping visualizations")
         except Exception as e:
-            logger.error(f"Visualization failed: {e}")
+            logger.error(f"❌ Visualization failed: {e}")
         
         logger.info("\n" + "="*70)
-        logger.info("HOSPITAL SIMULATION COMPLETE!")
+        logger.info("🏥 HOSPITAL SIMULATION COMPLETE!")
         logger.info("="*70)
-        logger.info("\nOutput files:")
+        logger.info("\n📁 Output files:")
         logger.info(f"  {args.output_dir}/")
         logger.info("    └── [scenario_name]/")
         logger.info("        ├── csv/results_*.csv       (Time-series data)")

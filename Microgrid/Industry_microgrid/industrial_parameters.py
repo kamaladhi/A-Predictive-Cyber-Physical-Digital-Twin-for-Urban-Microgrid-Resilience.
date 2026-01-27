@@ -165,7 +165,7 @@ class BatteryConfig:
     """Battery Energy Storage System - Industrial UPS + Peak Shaving"""
     
     nominal_capacity_kwh: float = 1800
-    usable_capacity_kwh: float = 1620.0  # 90% DoD (10-90% SoC)
+    usable_capacity_kwh: float = 1628.0  # 90% DoD (10-90% SoC)
     max_discharge_power_kw: float = 400.0  # 0.25C rate
     max_charge_power_kw: float = 400.0
     round_trip_efficiency: float = 0.92

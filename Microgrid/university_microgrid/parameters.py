@@ -162,6 +162,10 @@ class ControlConfig:
     max_total_shed_kw: float = 360  # Can shed up to 60% of non-critical load
     max_shed_percent_per_hour: float = 25  # Gradual curtailment
     enforce_critical_load_priority: bool = True
+
+    # Restoration pacing
+    restore_time_min: float = 10      # Minutes to wait before restoring next block
+    restore_margin_ratio: float = 0.10  # Require 10% margin before restore
     
     def __post_init__(self):
         if self.load_shedding_priority is None:
@@ -190,6 +194,7 @@ class ProtectionConfig:
 class MicrogridConfig:
     """Complete microgrid system configuration"""
     campus_name: str = "Amrita University Coimbatore"
+    facility_name: str = "University Campus"
     location: str = "Coimbatore, Tamil Nadu, India"
     latitude: float = 11.0183
     longitude: float = 76.9725

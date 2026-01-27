@@ -1,0 +1,410 @@
+import numpy as np
+from enum import Enum
+from typing import Dict, List, Tuple
+from dataclasses import dataclass
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class OperationMode(Enum):
+    """Microgrid operation modes"""
+    GRID_CONNECTED = 1
+    ISLANDED = 2
+    TRANSITION_TO_ISLAND = 3
+    TRANSITION_TO_GRID = 4
+
+
+@dataclass
+class EMSState:
+    """EMS state information"""
+    mode: OperationMode
+    grid_available: bool
+    frequency_hz: float
+    voltage_pu: float
+    total_generation_kw: float
+    total_load_kw: float
+    power_balance_kw: float
+    islanding_event: bool = False
+    reconnection_event: bool = False
+
+
+class EnergyManagementSystem:
+    """
+    Residential Energy Management System
+    Priority: Survival over comfort - AGGRESSIVE load shedding
+    """
+    
+    def __init__(self, config, battery, pv, generator1, generator2, load):
+        self.config = config
+        self.battery = battery
+        self.pv = pv
+        self.generator1 = generator1  # Only Gen1 for residential
+        self.generator2 = generator2  # Dummy (not used)
+        self.load = load
+        
+        # Generator runtime tracking
+        self.gen1_on_minutes = 0
+        self.gen1_off_minutes = 9999
+        self.restore_stable_minutes = 0
+        
+        # State variables
+        self.mode = OperationMode.GRID_CONNECTED
+        self.grid_available = True
+        self.grid_power_kw = 0
+        
+        # Grid parameters
+        self.frequency_hz = config.nominal_frequency_hz
+        self.voltage_pu = 1.0
+        
+        # Control state
+        self.last_mode = self.mode
+        self.reconnection_timer = 0
+        self.reconnection_delay = config.control.reconnection_delay_seconds
+        
+        # Restoration policy
+        self.restore_time_min = config.control.restore_time_min
+        self.restore_margin_ratio = config.control.restore_margin_ratio
+        
+        # Event tracking
+        self.events = []
+        
+    def detect_grid_fault(self) -> bool:
+        """Detect grid fault conditions"""
+        if (self.frequency_hz > self.config.protection.over_frequency_hz or 
+            self.frequency_hz < self.config.protection.under_frequency_hz):
+            return True
+        
+        if (self.voltage_pu > self.config.protection.over_voltage_pu or 
+            self.voltage_pu < self.config.protection.under_voltage_pu):
+            return True
+        
+        return False
+    
+    def check_reconnection_conditions(self) -> bool:
+        """Check if conditions suitable for reconnection"""
+        if not self.grid_available:
+            return False
+        
+        # Voltage within window
+        v_min, v_max = self.config.protection.reconnection_voltage_window_pu
+        if not (v_min <= self.voltage_pu <= v_max):
+            return False
+        
+        # Frequency within window
+        f_min, f_max = self.config.protection.reconnection_frequency_window_hz
+        if not (f_min <= self.frequency_hz <= f_max):
+            return False
+        
+        # Battery has minimum charge (residential: 30%)
+        if self.battery.soc_percent < 30:
+            return False
+        
+        return True
+    
+    def primary_control_grid_forming(self, dt_seconds: float) -> Tuple[float, float]:
+        """Primary control in islanded mode (grid-forming)"""
+        total_gen = self.pv.power_kw + self.generator1.power_kw
+        total_load = self.load.total_load_kw
+        power_imbalance = total_gen - total_load
+        
+        # Frequency droop
+        freq_droop = self.config.control.frequency_droop_coefficient
+        delta_f = -freq_droop * power_imbalance / self.config.load_profile.peak_load
+        self.frequency_hz = self.config.nominal_frequency_hz + delta_f
+        
+        # Voltage droop
+        voltage_droop = self.config.control.voltage_droop_coefficient
+        delta_v = -voltage_droop * power_imbalance / self.config.load_profile.peak_load
+        self.voltage_pu = 1.0 + delta_v
+        
+        # Clamp to limits
+        self.frequency_hz = np.clip(self.frequency_hz, 49.5, 50.5)
+        self.voltage_pu = np.clip(self.voltage_pu, 0.95, 1.05)
+        
+        return self.frequency_hz, self.voltage_pu
+    
+    def secondary_control_restoration(self, dt_seconds: float):
+        """Secondary control: restore frequency and voltage to nominal"""
+        if self.mode != OperationMode.ISLANDED:
+            return
+        
+        restoration_rate = 0.01
+        
+        freq_error = self.config.nominal_frequency_hz - self.frequency_hz
+        self.frequency_hz += freq_error * restoration_rate * dt_seconds
+        
+        voltage_error = 1.0 - self.voltage_pu
+        self.voltage_pu += voltage_error * restoration_rate * dt_seconds
+    
+    def load_shedding_strategy(self, power_deficit_kw: float) -> float:
+        """
+        Residential load shedding: AGGRESSIVE - Comfort sacrificed
+        Priority: EV → AC → Washing → Lighting (Critical NEVER shed)
+        """
+        if power_deficit_kw <= 0:
+            return 0
+        
+        total_shed = 0
+        
+        # Shed order: most expendable first (HARSH for residential)
+        load_tiers = ["EV_CHARGING", "AIR_CONDITIONING", "WASHING_MACHINES", "COMMON_LIGHTING"]
+        
+        for tier in load_tiers:
+            if power_deficit_kw <= 0:
+                break
+            
+            shed = self.load.shed_tier(tier, power_deficit_kw)
+            if shed > 0:
+                discomfort_msg = ""
+                if tier == "EV_CHARGING":
+                    discomfort_msg = " (Residents cannot charge vehicles)"
+                elif tier == "AIR_CONDITIONING":
+                    discomfort_msg = " ⚠️ (Apartments will heat up - DISCOMFORT EXPECTED)"
+                elif tier == "WASHING_MACHINES":
+                    discomfort_msg = " (Laundry services suspended)"
+                    
+                self.log_event(
+                    "load_shed",
+                    f"🏘️ RESIDENTIAL SHED: {shed:.1f} kW from {tier}{discomfort_msg}"
+                )
+            
+            power_deficit_kw -= shed
+            total_shed += shed
+        
+        # If still deficit after shedding ALL non-critical
+        if power_deficit_kw > 0:
+            self.log_event(
+                "critical_warning",
+                f"⚠️ CRITICAL: Cannot shed more. Deficit {power_deficit_kw:.1f} kW. "
+                f"Safety systems at risk!"
+            )
+        
+        return total_shed
+    
+    def load_restoration_strategy(self, power_surplus_kw: float) -> float:
+        """
+        Restore loads gradually (reverse priority)
+        Residential: Restore Lighting → Washing → AC → EV (last)
+        """
+        if power_surplus_kw <= 80:  # Need significant margin
+            return 0
+        
+        total_restored = 0
+        # Restore essential comfort first, luxury last
+        restore_tiers = ["COMMON_LIGHTING", "WASHING_MACHINES", "AIR_CONDITIONING", "EV_CHARGING"]
+        
+        for tier in restore_tiers:
+            if power_surplus_kw <= 80:
+                break
+            
+            restored = self.load.restore_tier(tier, power_surplus_kw - 80)
+            if restored > 0:
+                self.log_event(
+                    "load_restore",
+                    f"🏘️ Restored {restored:.1f} kW to {tier}"
+                )
+            
+            power_surplus_kw -= restored
+            total_restored += restored
+        
+        return total_restored
+    
+    def battery_dispatch_strategy(self, power_balance_kw: float, dt_hours: float) -> float:
+        """Battery charge/discharge control"""
+        if power_balance_kw < -5:  # Deficit
+            required_discharge = abs(power_balance_kw)
+            actual_discharge = self.battery.discharge(required_discharge, dt_hours)
+            return -actual_discharge
+        
+        elif power_balance_kw > 30:  # Surplus
+            available_charge = power_balance_kw - 15
+            actual_charge = self.battery.charge(available_charge, dt_hours)
+            return actual_charge
+        
+        return 0
+    
+    def generator_dispatch_strategy(self):
+        """
+        Single generator control for residential
+        Start LATE (20% SoC) - fuel is expensive
+        Stop EARLY (70% SoC) - minimize runtime
+        """
+        from Microgrid.residence.residential_components import ComponentState
+        
+        soc = self.battery.soc_percent
+        
+        # GENERATOR (Start as last resort)
+        if self.generator1.state == ComponentState.OFF:
+            # Start only when battery very low AND in island mode
+            if (self.mode == OperationMode.ISLANDED and 
+                soc <= self.generator1.config.auto_start_soc_threshold and
+                self.gen1_off_minutes >= self.generator1.config.min_off_time_minutes):
+                
+                self.generator1.start()
+                self.log_event('gen_start', f'🏘️ GENERATOR started (LAST RESORT) - SoC {soc:.1f}%')
+                self.log_event('resident_alert', '⚠️ Generator noise - residents notified')
+        
+        elif self.generator1.state == ComponentState.RUNNING:
+            # Stop early to save fuel
+            if (soc >= self.generator1.config.auto_stop_soc_threshold and
+                self.gen1_on_minutes >= self.generator1.config.min_on_time_minutes and
+                (self.grid_available or (self.mode == OperationMode.ISLANDED and self.pv.power_kw > 150))):
+                
+                self.generator1.stop()
+                self.log_event('gen_stop', f'🏘️ Generator stopped (fuel conservation) - SoC {soc:.1f}%')
+    
+    def calculate_power_balance(self) -> float:
+        """Calculate current power balance"""
+        generation = self.pv.power_kw + self.generator1.power_kw
+        
+        if self.mode == OperationMode.GRID_CONNECTED:
+            generation += self.grid_power_kw
+        
+        return generation - self.load.total_load_kw
+    
+    def transition_to_island(self):
+        """Execute transition to islanded mode"""
+        self.mode = OperationMode.TRANSITION_TO_ISLAND
+        self.grid_available = False
+        self.grid_power_kw = 0
+        
+        self.log_event('islanding', '🏘️ RESIDENTIAL ISLANDING - Safety systems protected, comfort sacrificed')
+        
+        # Immediate power balance check
+        power_balance = self.calculate_power_balance()
+        
+        if power_balance < 0:
+            self.log_event('power_deficit', f'Power deficit: {abs(power_balance):.1f} kW')
+            self.log_event('resident_alert', '⚠️ OUTAGE: Non-essential services will be curtailed')
+            self.load_shedding_strategy(abs(power_balance))
+        
+        self.mode = OperationMode.ISLANDED
+        self.log_event('islanded', '🏘️ Microgrid islanded - Expect service degradation')
+    
+    def transition_to_grid(self):
+        """Execute transition to grid-connected"""
+        self.mode = OperationMode.TRANSITION_TO_GRID
+        self.reconnection_timer = self.reconnection_delay
+        self.log_event('reconnection_initiated', f'Grid detected - waiting {self.reconnection_delay}s before reconnection')
+    
+    def complete_reconnection(self):
+        """Complete reconnection to grid"""
+        self.mode = OperationMode.GRID_CONNECTED
+        self.grid_available = True
+        
+        # Restore all shed loads
+        if self.load.shed_load_kw > 0:
+            self.load.restore_load()
+            self.log_event('load_restore', '🏘️ All services restored after grid reconnection')
+            self.log_event('resident_alert', '✅ Normal operation resumed')
+        
+        self.log_event('grid_connected', '🏘️ Reconnected to grid')
+    
+    def update(self, timestamp, dt_seconds: float, simulated_grid_available: bool = True,
+               grid_frequency_hz: float = None, grid_voltage_pu: float = None) -> EMSState:
+        """Main EMS update loop"""
+        dt_hours = dt_seconds / 3600
+        dt_minutes = dt_seconds / 60
+        
+        # Update grid parameters
+        if grid_frequency_hz is not None:
+            self.frequency_hz = grid_frequency_hz
+        if grid_voltage_pu is not None:
+            self.voltage_pu = grid_voltage_pu
+        
+        self.grid_available = simulated_grid_available
+        
+        # Mode transitions
+        islanding_event = False
+        reconnection_event = False
+        
+        if self.mode == OperationMode.GRID_CONNECTED:
+            if not self.grid_available or self.detect_grid_fault():
+                self.transition_to_island()
+                islanding_event = True
+        
+        elif self.mode == OperationMode.ISLANDED:
+            if self.check_reconnection_conditions():
+                self.transition_to_grid()
+        
+        elif self.mode == OperationMode.TRANSITION_TO_GRID:
+            self.reconnection_timer -= dt_seconds
+            if self.reconnection_timer <= 0:
+                self.complete_reconnection()
+                reconnection_event = True
+        
+        # Control based on mode
+        if self.mode == OperationMode.ISLANDED:
+            self.primary_control_grid_forming(dt_seconds)
+            self.secondary_control_restoration(dt_seconds)
+        
+        # Update generator runtime tracker
+        if self.generator1.is_running:
+            self.gen1_on_minutes += dt_minutes
+            self.gen1_off_minutes = 0
+        else:
+            self.gen1_off_minutes += dt_minutes
+            self.gen1_on_minutes = 0
+        
+        # Generator dispatch
+        self.generator_dispatch_strategy()
+        
+        # Power balance
+        power_balance = self.calculate_power_balance()
+        
+        # Battery dispatch
+        battery_power = self.battery_dispatch_strategy(power_balance, dt_hours)
+        power_balance += battery_power
+        
+        # Restoration logic (more conservative than hospital)
+        restore_margin_kw = self.restore_margin_ratio * self.load.critical_load_kw
+        
+        if (power_balance > restore_margin_kw and self.battery.soc_percent > 50):
+            self.restore_stable_minutes += dt_minutes
+        else:
+            self.restore_stable_minutes = 0
+        
+        if (self.restore_stable_minutes >= self.restore_time_min and self.load.shed_load_kw > 0):
+            self.load_restoration_strategy(power_balance)
+        
+        # Grid power (in grid-connected mode)
+        if self.mode == OperationMode.GRID_CONNECTED:
+            self.grid_power_kw = (self.load.total_load_kw - self.pv.power_kw - 
+                                 self.generator1.power_kw + self.battery.power_kw)
+        else:
+            self.grid_power_kw = 0
+        
+        # Update discomfort metrics
+        self.load.update_discomfort_metrics(dt_minutes)
+        
+        # Build state
+        state = EMSState(
+            mode=self.mode,
+            grid_available=self.grid_available,
+            frequency_hz=self.frequency_hz,
+            voltage_pu=self.voltage_pu,
+            total_generation_kw=self.pv.power_kw + self.generator1.power_kw + self.grid_power_kw,
+            total_load_kw=self.load.total_load_kw,
+            power_balance_kw=self.calculate_power_balance(),
+            islanding_event=islanding_event,
+            reconnection_event=reconnection_event
+        )
+        
+        return state
+    
+    def log_event(self, event_type: str, message: str):
+        """Log an event"""
+        event = {
+            'type': event_type,
+            'message': message
+        }
+        self.events.append(event)
+        logger.info(f"[{event_type}] {message}")
+    
+    def get_events(self) -> List[dict]:
+        """Get and clear event log"""
+        events = self.events.copy()
+        self.events.clear()
+        return events

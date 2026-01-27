@@ -6,13 +6,9 @@ import sys
 import numpy as np
 import os
 
-# Ensure project root is on sys.path so `from Microgrid...` imports work
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-from industrial_parameters import MicrogridConfig, create_default_config
-from industrial_simulator import MicrogridSimulator
+from Microgrid.university_microgrid.parameters import MicrogridConfig, create_default_config
+from Microgrid.university_microgrid.university_simulator import MicrogridSimulator
+from Microgrid.university_microgrid.university_visualizer import visualize_all_scenarios
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,9 +16,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 def to_python(obj):
-    """Convert numpy types to Python native types"""
     if isinstance(obj, dict):
         return {k: to_python(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -32,18 +26,17 @@ def to_python(obj):
     else:
         return obj
 
-
 def run_single_scenario(config: MicrogridConfig, 
                        scenario_name: str,
                        duration_hours: float,
                        outage_start: float = None,
                        outage_duration: float = None,
                        output_dir: str = '.'):
-    """Run a single hospital scenario simulation"""
+    """Run a single scenario simulation"""
     
-    logger.info(f"\n{'='*70}")
-    logger.info(f"Running Hospital Scenario: {scenario_name}")
-    logger.info(f"{'='*70}")
+    logger.info(f"\n{'='*60}")
+    logger.info(f"Running Scenario: {scenario_name}")
+    logger.info(f"{'='*60}")
     
     # Create simulator
     sim = MicrogridSimulator(config)
@@ -70,32 +63,25 @@ def run_single_scenario(config: MicrogridConfig,
     logger.info(f"  PV Penetration: {metrics['pv_penetration_percent']:.1f}%")
     
     if 'outage_duration_hours' in metrics:
-        logger.info(f"\nHospital Resilience Metrics:")
+        logger.info(f"\nResilience Metrics:")
         logger.info(f"  Critical Load Served: {metrics['critical_load_served_percent']:.1f}%")
-        logger.info(f"  Critical Loads Never Shed: {metrics['critical_load_never_shed']}")
         logger.info(f"  Min Battery SoC: {metrics['min_battery_soc_percent']:.1f}%")
         logger.info(f"  Load Shed Events: {metrics['load_shed_events']}")
-        logger.info(f"  Max Non-Critical Shed: {metrics['max_non_critical_shed_percent']:.1f}%")
-        logger.info(f"  Total Shed Energy: {metrics['total_shed_energy_kwh']:.1f} kWh")
-        logger.info(f"\nGenerator Performance:")
-        logger.info(f"  Gen1 (Critical) Runtime: {metrics['gen1_runtime_hours']:.1f} hours")
-        logger.info(f"  Gen1 Fuel Consumed: {metrics['gen1_fuel_consumed_liters']:.1f} liters")
-        logger.info(f"  Gen2 (Non-Critical) Runtime: {metrics['gen2_runtime_hours']:.1f} hours")
-        logger.info(f"  Gen2 Fuel Consumed: {metrics['gen2_fuel_consumed_liters']:.1f} liters")
-        logger.info(f"  Total Fuel: {metrics['total_fuel_consumed_liters']:.1f} liters")
+        logger.info(f"  Generator Runtime: {metrics['generator_runtime_hours']:.1f} hours")
+        logger.info(f"  Fuel Consumed: {metrics['generator_fuel_consumed_liters']:.1f} liters")
         logger.info(f"  Survived Full Outage: {metrics['survived_full_outage']}")
-    
-    # Prepare output folders
+
+    # Prepare output folders for this scenario (always create)
     scenario_dir = os.path.join(output_dir, scenario_name)
     csv_dir = os.path.join(scenario_dir, 'csv')
     metrics_dir = os.path.join(scenario_dir, 'metrics')
     png_dir = os.path.join(scenario_dir, 'png')
     pdf_dir = os.path.join(scenario_dir, 'pdf')
-    
+
     for d in (csv_dir, metrics_dir, png_dir, pdf_dir):
         os.makedirs(d, exist_ok=True)
-    
-    # Export results
+
+    # Export results into scenario folders
     csv_path = os.path.join(csv_dir, f"results_{scenario_name}.csv")
     metrics_path = os.path.join(metrics_dir, f"{scenario_name}_metrics.json")
     sim.export_results(df, csv_path)
@@ -105,38 +91,38 @@ def run_single_scenario(config: MicrogridConfig,
 
 
 def run_all_scenarios(config: MicrogridConfig, output_dir: str = '.'):
-    """Run all predefined hospital scenarios"""
+    """Run all predefined scenarios"""
     
     scenarios = {
-        'night_emergency': {
-            'duration_hours': 24,
-            'outage_start': 20,
-            'outage_duration': 8,
-            'description': '🌙 Night emergency outage (worst case - no PV)'
-        },
         'daytime_outage': {
             'duration_hours': 24,
             'outage_start': 14,
             'outage_duration': 6,
-            'description': '☀️ Daytime outage with high solar generation'
+            'description': 'Daytime outage with high solar generation'
+        },
+        'night_outage': {
+            'duration_hours': 24,
+            'outage_start': 20,
+            'outage_duration': 8,
+            'description': 'Night outage, battery-only (worst case)'
         },
         'extended_outage': {
-            'duration_hours': 36,
+            'duration_hours': 48,
             'outage_start': 10,
-            'outage_duration': 12,
-            'description': '⏳ Extended 12-hour outage requiring generators'
-        },
-        'peak_load_outage': {
-            'duration_hours': 24,
-            'outage_start': 15,
-            'outage_duration': 4,
-            'description': '📈 Outage during peak hospital operations'
+            'outage_duration': 24,
+            'description': 'Extended 24-hour outage requiring generator'
         },
         'normal_operation': {
             'duration_hours': 72,
             'outage_start': None,
             'outage_duration': None,
-            'description': '✅ Normal grid-connected operation (72h)'
+            'description': 'Normal grid-connected operation'
+        },
+        'peak_load_outage': {
+            'duration_hours': 24,
+            'outage_start': 13,
+            'outage_duration': 4,
+            'description': 'Outage during peak load period'
         }
     }
     
@@ -158,75 +144,67 @@ def run_all_scenarios(config: MicrogridConfig, output_dir: str = '.'):
         all_results[scenario_name] = df
         all_metrics[scenario_name] = metrics
     
-    # Save combined metrics
+    # Save combined metrics at output root
     os.makedirs(output_dir, exist_ok=True)
     all_metrics_path = os.path.join(output_dir, 'all_scenario_metrics.json')
     with open(all_metrics_path, 'w') as f:
         json.dump(to_python(all_metrics), f, indent=2)
     
-    logger.info(f"\n{'='*70}")
-    logger.info("ALL HOSPITAL SCENARIOS COMPLETE!")
-    logger.info(f"{'='*70}")
+    logger.info(f"\n{'='*60}")
+    logger.info("All scenarios complete!")
+    logger.info(f"{'='*60}")
     
     return all_results, all_metrics
 
 
 def run_custom_scenario(config: MicrogridConfig, args):
     """Run custom user-defined scenario"""
-    logger.info("\nRunning custom hospital scenario...")
+    
+    logger.info("\nRunning custom scenario...")
     
     df, metrics = run_single_scenario(
         config,
         args.name,
         args.duration,
         args.outage_start,
-        args.outage_duration,
-        output_dir=args.output_dir
+        args.outage_duration
     )
     
     return {args.name: df}, {args.name: metrics}
 
 
 def main():
-    """Main entry point for hospital microgrid simulation"""
+    """Main entry point"""
     
     parser = argparse.ArgumentParser(
-        description='Hospital Microgrid Simulator - Digital Twin Framework',
+        description='Amrita University Microgrid Simulator',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run all predefined hospital scenarios
+  # Run all predefined scenarios
   python run_microgrid_simulation.py --all
   
   # Run single predefined scenario
-  python run_microgrid_simulation.py --scenario night_emergency
+  python run_microgrid_simulation.py --scenario night_outage
   
   # Run custom scenario
-  python run_microgrid_simulation.py --custom --name emergency_test --duration 48 --outage-start 22 --outage-duration 10
+  python run_microgrid_simulation.py --custom --name my_test --duration 48 --outage-start 15 --outage-duration 12
   
   # Use custom configuration
-  python run_microgrid_simulation.py --all --config my_hospital_config.json
+  python run_microgrid_simulation.py --all --config my_config.json
   
-  # Specify output directory
-  python run_microgrid_simulation.py --all --output-dir ./hospital_results
-  
-Hospital Critical Requirements:
-  - 320 kW critical loads ALWAYS protected
-  - ICU/Life Support: 120 kW
-  - Operation Theatres: 80 kW
-  - Emergency/Labs: 70 kW
-  - Essential Lighting: 30 kW
-  - IT/Monitoring: 20 kW
+  # Skip visualization
+  python run_microgrid_simulation.py --all --no-viz
         """
     )
     
     # Mode selection
     mode_group = parser.add_mutually_exclusive_group(required=True)
     mode_group.add_argument('--all', action='store_true',
-                           help='Run all predefined hospital scenarios')
+                           help='Run all predefined scenarios')
     mode_group.add_argument('--scenario', type=str,
-                           choices=['night_emergency', 'daytime_outage', 'extended_outage', 
-                                   'peak_load_outage', 'normal_operation'],
+                           choices=['daytime_outage', 'night_outage', 'extended_outage', 
+                                   'normal_operation', 'peak_load_outage'],
                            help='Run single predefined scenario')
     mode_group.add_argument('--custom', action='store_true',
                            help='Run custom scenario')
@@ -246,17 +224,19 @@ Hospital Critical Requirements:
                        help='Path to custom configuration JSON file')
     
     # Output options
-    parser.add_argument('--output-dir', type=str, default='hospital_results',
+    parser.add_argument('--no-viz', action='store_true',
+                       help='Skip visualization generation')
+    parser.add_argument('--output-dir', type=str, default='.',
                        help='Output directory for results')
     
     args = parser.parse_args()
     
     # Load configuration
     if args.config:
-        logger.info(f"Loading hospital configuration from: {args.config}")
+        logger.info(f"Loading configuration from: {args.config}")
         config = MicrogridConfig.from_json(args.config)
     else:
-        logger.info("Using default hospital configuration")
+        logger.info("Using default configuration")
         config = create_default_config()
     
     # Validate configuration
@@ -265,28 +245,19 @@ Hospital Critical Requirements:
         logger.warning("Configuration warnings:")
         for w in warnings:
             logger.warning(f"  {w}")
-    else:
-        logger.info("Hospital configuration validated successfully")
     
     # Print configuration summary
-    logger.info("\n" + "="*70)
-    logger.info("HOSPITAL MICROGRID CONFIGURATION")
-    logger.info("="*70)
-    logger.info(f"Facility: {config.facility_name} ({config.facility_type})")
-    logger.info(f"Location: {config.location}")
-    logger.info(f"\nLOAD PROFILE:")
-    logger.info(f"  Peak Load: {config.load_profile.peak_load} kW")
-    logger.info(f"  Average Load: {config.load_profile.average_load:.1f} kW")
-    logger.info(f"  CRITICAL: {config.load_profile.total_critical_load} kW (PROTECTED)")
-    logger.info(f"  NON-CRITICAL: {config.load_profile.total_non_critical_load} kW")
-    logger.info(f"\nBATTERY: {config.battery.usable_capacity_kwh} kWh / {config.battery.max_discharge_power_kw} kW")
-    logger.info(f"  Critical Backup: {config.battery.critical_backup_hours:.1f} hours")
-    logger.info(f"\nSOLAR PV: {config.pv.installed_capacity_kwp} kWp")
-    logger.info(f"\nGENERATORS:")
-    logger.info(f"  Gen1 (Critical): {config.generator.gen1_rated_power_kw} kW")
-    logger.info(f"  Gen2 (Non-Critical): {config.generator.gen2_rated_power_kw} kW")
-    logger.info(f"  Total Capacity: {config.generator.total_capacity_kw} kW")
-    logger.info("="*70 + "\n")
+    logger.info("\n" + "="*60)
+    logger.info("Microgrid Configuration Summary")
+    logger.info("="*60)
+    logger.info(f"Campus: {config.campus_name}")
+    logger.info(f"Peak Load: {config.load_profile.peak_load} kW")
+    logger.info(f"Critical Load: {config.load_profile.total_critical_load} kW")
+    logger.info(f"Battery: {config.battery.usable_capacity_kwh} kWh / {config.battery.max_discharge_power_kw} kW")
+    logger.info(f"Solar PV: {config.pv.installed_capacity_kwp} kWp")
+    logger.info(f"Generator: {config.generator.rated_power_kw} kW")
+    logger.info(f"Backup Duration: {config.control.backup_duration_hours} hours")
+    logger.info("="*60 + "\n")
     
     # Run simulation
     try:
@@ -294,11 +265,11 @@ Hospital Critical Requirements:
             results_dict, metrics_dict = run_all_scenarios(config, output_dir=args.output_dir)
         elif args.scenario:
             scenario_params = {
-                'night_emergency': (24, 20, 8),
                 'daytime_outage': (24, 14, 6),
-                'extended_outage': (36, 10, 12),
-                'peak_load_outage': (24, 15, 4),
-                'normal_operation': (72, None, None)
+                'night_outage': (24, 20, 8),
+                'extended_outage': (48, 10, 24),
+                'normal_operation': (72, None, None),
+                'peak_load_outage': (24, 13, 4)
             }
             duration, start, dur = scenario_params[args.scenario]
             df, metrics = run_single_scenario(config, args.scenario, duration, start, dur, output_dir=args.output_dir)
@@ -307,41 +278,35 @@ Hospital Critical Requirements:
         else:  # custom
             results_dict, metrics_dict = run_custom_scenario(config, args)
         
-        # Generate visualizations (if module available)
-        try:
-            from industrial_visualizer import visualize_all_scenarios
+        # Generate visualizations
+        if not args.no_viz:
             logger.info("\nGenerating visualizations...")
             try:
-                visualize_all_scenarios(results_dict, metrics_dict, output_dir=args.output_dir)
+                try:
+                    visualize_all_scenarios(results_dict, metrics_dict, output_dir=args.output_dir)
+                except TypeError:
+                    # Fallback if visualizer signature hasn't been updated
+                    visualize_all_scenarios(results_dict, metrics_dict)
                 logger.info("Visualizations complete!")
-            except TypeError:
-                visualize_all_scenarios(results_dict, metrics_dict)
-        except ImportError:
-            logger.warning("Visualizer module not found - skipping visualizations")
-        except Exception as e:
-            logger.error(f"Visualization failed: {e}")
+            except Exception as e:
+                logger.error(f"Visualization failed: {e}")
+                logger.warning("Continuing without visualizations...")
         
-        logger.info("\n" + "="*70)
-        logger.info("HOSPITAL SIMULATION COMPLETE!")
-        logger.info("="*70)
+        logger.info("\n" + "="*60)
+        logger.info("SIMULATION COMPLETE!")
+        logger.info("="*60)
         logger.info("\nOutput files:")
-        logger.info(f"  {args.output_dir}/")
-        logger.info("    └── [scenario_name]/")
-        logger.info("        ├── csv/results_*.csv       (Time-series data)")
-        logger.info("        ├── metrics/*_metrics.json  (Performance metrics)")
-        logger.info("        ├── png/plot_*.png          (Visualizations)")
-        logger.info("        └── pdf/report_*.pdf        (Detailed reports)")
-        logger.info(f"\n  {args.output_dir}/all_scenario_metrics.json  (Combined metrics)")
+        logger.info("  - results_*.csv : Time-series simulation data")
+        logger.info("  - *_metrics.json : Resilience and performance metrics")
+        logger.info("  - plot_*.png : Power flow visualizations")
+        logger.info("  - report_*.pdf : Comprehensive PDF reports")
+        logger.info("  - parameters.json : Configuration used")
         
-        # Export configuration
-        config_path = os.path.join(args.output_dir, 'hospital_parameters.json')
-        config.to_json(config_path)
-        logger.info(f"  {config_path}  (Configuration used)")
-        
-        logger.info("\n All data exported successfully!")
+        # Export configuration for reproducibility
+        config.to_json('parameters.json')
         
     except Exception as e:
-        logger.error(f" Simulation failed: {e}")
+        logger.error(f"Simulation failed: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

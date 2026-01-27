@@ -1,0 +1,39 @@
+University-Specific Features
+Academic Schedule Awareness:
+
+Academic hours tracking (7 AM - 10 PM)
+Peak shaving during class hours
+Different battery strategies for academic vs. off-peak periods
+
+Campus Load Priorities:
+
+Critical (NEVER shed): Research labs, data centers, security systems
+Academic buildings: Non-essential during off-hours
+Dormitory common areas: Lounges, study rooms (sheddable)
+Athletic facilities: Gyms, sports fields (highest shed priority)
+
+Grid-Connected Mode:
+
+Aggressive PV self-consumption to reduce campus electricity costs
+Peak demand management during academic hours (40% load support from battery)
+Off-peak charging to maintain high SoC for backup readiness
+
+Islanded Mode:
+
+Prioritizes critical research infrastructure
+Gen2 only starts when non-critical demand > 100 kW
+Higher restoration SoC threshold (45%) for campus stability
+
+Load Shedding Strategy:
+
+Up to 85% shedding of non-critical loads in emergencies
+Athletic facilities shed first
+Research labs and data centers always protected
+Time-based restoration to prevent oscillations
+
+The architecture is identical to the hospital EMS:
+
+Same clean interfaces (MicrogridMeasurements → EMSControlOutputs)
+Same state machine logic
+Same separation of control from physics
+Production-ready for digital twin deployment
