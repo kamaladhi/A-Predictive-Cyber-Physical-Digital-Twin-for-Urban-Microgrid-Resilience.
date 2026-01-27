@@ -170,7 +170,7 @@ streamlit>=1.28.0     # Dashboard framework
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/Digital-twin-microgrid.git
+git clone https://github.com/kamaladhi/Digital-twin-microgrid.git
 cd Digital-twin-microgrid
 ```
 
