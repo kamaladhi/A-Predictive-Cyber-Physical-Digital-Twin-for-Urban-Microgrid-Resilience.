@@ -1,1 +1,0 @@
-timestamp,microgrid_id,pv_power_kw,battery_power_kw,battery_soc_percent,total_load_kw,grid_available,data_quality
