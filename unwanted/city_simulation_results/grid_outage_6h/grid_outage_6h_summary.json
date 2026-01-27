@@ -1,0 +1,12 @@
+{
+  "scenario": "grid_outage_6h",
+  "duration_hours": 36.0,
+  "city_summary": {
+    "avg_load_served_kw": 1002.6871578421059,
+    "avg_load_shed_kw": 1056.6458231899167,
+    "resilience_score": 0.8468357524711876,
+    "critical_satisfaction_avg": 100.0,
+    "critical_satisfaction_min": 100.0
+  },
+  "coordination_points": 432
+}

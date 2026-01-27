@@ -808,41 +808,82 @@ class CityEMS:
         Calculate priority-aware load shedding allocation across microgrids
         
         This is the CORE RESILIENCE ALGORITHM that enforces priority policies.
+        Strictly enforces: NEVER shed from higher priority if lower priority has headroom.
+        
+        KEY PRINCIPLE: Trigger shedding based on CRITICAL/HIGH priority MG health,
+        then allocate shedding to LOWER priorities first. This prevents violations.
         """
         policy_params = self.policy_parameters[self.state.active_policy]
-        weights = policy_params['priority_weights']
         shed_order = policy_params['shed_order']
         
-        # Calculate required city-wide shedding based on resources
-        avg_soc = city_resources['average_soc_percent']
+        # PRIORITY-AWARE TRIGGER: Check health of CRITICAL and HIGH priority MGs
+        # If they're struggling, shed from lower priorities to protect them.
+        critical_high_min_soc = 100.0
+        for mg_id, mg_info in self.microgrids.items():
+            if mg_info.priority in [MicrogridPriority.CRITICAL, MicrogridPriority.HIGH]:
+                status = meas.microgrid_statuses.get(mg_id)
+                if status:
+                    critical_high_min_soc = min(critical_high_min_soc, status.battery_soc_percent)
+        
+        # Conservative trigger: Only shed from lower priorities when higher priorities
+        # are moderately stressed
         required_city_shed_percent = 0.0
-        
-        if avg_soc < 30:
-            required_city_shed_percent = 50.0
-        elif avg_soc < 40:
-            required_city_shed_percent = 30.0
-        elif avg_soc < 50:
-            required_city_shed_percent = 15.0
-        
-        # Allocate shedding based on priority
-        allocation = {}
-        
+        if critical_high_min_soc < 35:
+            required_city_shed_percent = 60.0
+        elif critical_high_min_soc < 45:
+            required_city_shed_percent = 40.0
+        elif critical_high_min_soc < 55:
+            required_city_shed_percent = 25.0
+
+        # Convert to kW target using current total load
+        total_city_load_kw = sum(status.total_load_kw for status in meas.microgrid_statuses.values())
+        required_city_shed_kw = (required_city_shed_percent / 100.0) * total_city_load_kw
+
+        allocation: Dict[str, float] = {mg_id: 0.0 for mg_id in self.microgrids.keys()}
+        remaining_kw = required_city_shed_kw
+
+        # STRICT PRIORITY ENFORCEMENT: Allocate from LOW→HIGH, never skip tiers
         for priority in shed_order:
-            for mg_id, mg_info in self.microgrids.items():
-                if mg_info.priority != priority:
-                    continue
-                
-                # Calculate allocated shedding based on priority weight
-                weight = weights[priority]
-                allocated_shed = required_city_shed_percent * (1.0 - weight)
-                
-                # Cap at maximum allowed for this microgrid
-                allocated_shed = min(allocated_shed, mg_info.max_shed_percent)
-                
-                allocation[mg_id] = allocated_shed
-        
+            if remaining_kw <= 1e-6:
+                break
+            
+            # Get all MGs at this priority level
+            priority_mgs = [(mg_id, mg_info) for mg_id, mg_info in self.microgrids.items() 
+                           if mg_info.priority == priority]
+            
+            # Calculate total available headroom at this priority tier
+            tier_available_kw = 0.0
+            for mg_id, mg_info in priority_mgs:
+                status = meas.microgrid_statuses.get(mg_id)
+                if status and status.total_load_kw > 0:
+                    max_shed_kw = (mg_info.max_shed_percent / 100.0) * status.total_load_kw
+                    tier_available_kw += max_shed_kw
+            
+            # If this tier can handle all remaining, distribute proportionally within tier
+            if tier_available_kw >= remaining_kw:
+                for mg_id, mg_info in priority_mgs:
+                    status = meas.microgrid_statuses.get(mg_id)
+                    if not status or status.total_load_kw <= 0:
+                        continue
+                    max_shed_kw = (mg_info.max_shed_percent / 100.0) * status.total_load_kw
+                    # Proportional share of remaining
+                    share = (max_shed_kw / tier_available_kw) if tier_available_kw > 0 else 0
+                    shed_kw = share * remaining_kw
+                    allocation[mg_id] = (shed_kw / status.total_load_kw) * 100.0
+                remaining_kw = 0.0
+                break
+            else:
+                # Max out this entire tier and continue to next
+                for mg_id, mg_info in priority_mgs:
+                    status = meas.microgrid_statuses.get(mg_id)
+                    if not status or status.total_load_kw <= 0:
+                        continue
+                    max_shed_kw = (mg_info.max_shed_percent / 100.0) * status.total_load_kw
+                    allocation[mg_id] = mg_info.max_shed_percent
+                    remaining_kw -= max_shed_kw
+
         return allocation
-    
+
     def _calculate_city_survivability(self, meas: CityWideMeasurements,
                                      shedding_allocation: Dict[str, float]) -> float:
         """

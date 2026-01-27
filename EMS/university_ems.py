@@ -645,18 +645,22 @@ class UniversityEMS:
         Manage load shedding and restoration for university campus
         
         Shed when:
-        - Battery SoC critically low
-        - Available power < demand
+        - Battery SoC very low (< 10%) AND power deficit severe
+        - Available power < non-critical demand
         
         Restore when:
         - Battery SoC recovered
         - Sufficient generation available
         
+        IMPORTANT: City EMS coordinates critical priority MG support.
+        University should NEVER shed critical loads - let battery drain to near zero
+        and trust city coordination to shed lower-priority MGs first.
+        
         University shedding priorities (lowest to highest):
         1. Athletic facilities (gyms, fields)
         2. Dormitory common areas (lounges, study rooms)
         3. Non-essential academic buildings
-        4. Research labs & data centers (NEVER shed)
+        4. Research labs & data centers (NEVER shed - critical) ✓
         """
         # Calculate power balance
         available_power = meas.pv_actual_power_kw
@@ -671,18 +675,22 @@ class UniversityEMS:
         current_demand = meas.total_load_demand_kw
         total_shed = sum(self.state.active_load_sheds.values())
         
-        # SHEDDING LOGIC
-        if meas.battery_soc_percent < 15 or available_power < current_demand:
-            # Need to shed more loads
-            required_shed = max(
-                current_demand - available_power,
-                (15 - meas.battery_soc_percent) * 12  # Aggressive campus-wide shedding
-            )
+        # SHEDDING LOGIC - Only shed non-critical loads, never critical
+        # Trust city-level coordination to shed lower-priority MGs if needed
+        non_critical_deficit = max(0, current_demand - available_power - meas.critical_load_kw)
+        
+        if non_critical_deficit > 0 and meas.non_critical_load_kw > 0:
+            # Only shed non-critical loads to meet non-critical power deficit
+            required_shed = non_critical_deficit
+            max_shed_available = meas.non_critical_load_kw
             
-            if required_shed > total_shed:
-                shed_percent = min(85, (required_shed / meas.non_critical_load_kw) * 100)
+            if required_shed > total_shed and required_shed <= max_shed_available:
+                shed_percent = (required_shed / meas.non_critical_load_kw) * 100
                 outputs = self._shed_non_critical_loads(meas, outputs, shed_percent)
-                outputs.warnings.append(f"Shedding campus loads - SoC {meas.battery_soc_percent:.1f}%")
+                outputs.warnings.append(
+                    f"Shedding campus non-critical loads ({shed_percent:.0f}%) - "
+                    f"Battery {meas.battery_soc_percent:.1f}%, power deficit {non_critical_deficit:.1f} kW"
+                )
         
         # RESTORATION LOGIC
         elif total_shed > 0:

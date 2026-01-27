@@ -19,13 +19,15 @@ class LoadProfile:
     def __post_init__(self):
         if self.hour_blocks is None:
             # (start_hour, end_hour, power_kw)
+            # Total load MUST include the critical_loads which are always present
+            # Minimum of 240 kW (critical) + variable non-critical
             self.hour_blocks = [
-                (0, 5, 160),      # Night: minimal
-                (5, 8, 260),      # Morning ramp
-                (8, 13, 520),     # Day peak
-                (13, 17, 600),    # Afternoon peak
-                (17, 22, 420),    # Evening
-                (22, 24, 240)     # Late night
+                (0, 5, 280),      # Night: 240 critical + 40 non-critical
+                (5, 8, 340),      # Morning ramp: 240 + 100 non-critical
+                (8, 13, 520),     # Day peak: 240 + 280 non-critical
+                (13, 17, 600),    # Afternoon peak: 240 + 360 non-critical
+                (17, 22, 480),    # Evening: 240 + 240 non-critical
+                (22, 24, 300)     # Late night: 240 + 60 non-critical
             ]
         
         if self.critical_loads is None:

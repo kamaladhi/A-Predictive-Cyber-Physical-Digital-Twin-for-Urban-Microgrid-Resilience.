@@ -1,0 +1,71 @@
+Digital Twin Microgrid Project - What’s Implemented 
+================================================================
+
+Scope
+-----
+We built a Digital Twin–based coordination framework for four heterogeneous urban microgrids (hospital, university, residence, industrial). The framework mirrors each microgrid, forecasts load, applies priority-aware resilience policies, and coordinates city-level EMS actions during grid outages.
+
+Microgrid Components (Physical Simulators)
+------------------------------------------
+- Hospital, University, Residence, Industrial simulators with their own configs and profiles (loaded via Utils/microgrid_factory.py).
+- Metadata includes priority, facility name, peak and critical loads.
+
+Digital Twin Layer (Per Microgrid)
+----------------------------------
+- One DigitalTwin instance per microgrid (DigitalTwin/digital_twin.py).
+- Mirrors simulator state each timestep: load, critical load, PV, generator, battery power, grid import/export, SOC, islanding flags; computes power balance.
+- Keeps history and feeds a LoadForecaster for 6-hour ahead predictions; stores last forecast.
+- Basic action hint (recommend_action) based on detected deficit; coordination decisions are made by EMS layer.
+
+EMS / Coordination Logic
+------------------------
+- Local EMS (per microgrid): IEMSOrchestrator (EMS/iems_orchestrator.py) is rule-based. Inputs: fused state + DR alerts. Outputs commands: battery charge/discharge setpoints (SOC guardrails), non-critical shedding, generator start/stop, optional grid import caps. LocalEMSManager instantiates one orchestrator per microgrid (EMS/local_ems_manager.py).
+
+- Global EMS (city level, default): PriorityAwareCoordinator (EMS/coordinator.py).
+  - Aggregates all microgrid states, computes city deficit.t critical served, 30% total load served) and labels city status (normal/degraded/critical).
+
+- Global EMS (foreca
+  - Sheds non-critical load starting from lowest priority (Industrial -> Residence -> University -> Hospital) to guarantee critical protection.
+  - Calculates resilience score (70% weighst-aware option): ProactiveCoordinator (EMS/proactive_coordinator.py).
+  - Uses each twin’s short-term forecast to pre-charge higher-priority batteries and suggest load shifting before peaks.
+  - Then applies the same priority-based shedding on current state; computes resilience similarly.
+
+- Energy Sharing (optional layer): GlobalEMSCoordinator + PowerExchangeModel (EMS/global_ems.py, EMS/power_exchange_model.py).
+  - Runs local EMS for each microgrid, detects surplus/deficit, proposes transfers.
+  - PowerExchangeModel enforces transmission line capacities and losses; tracks active transfers.
+
+Data Flow / Runtime Loop (run_digital_twin_city_simulation.py)
+-------------------------------------------------------------
+- Registers all four microgrids via MicrogridFactory (configs + simulators + metadata).
+- Creates a DigitalTwin for each microgrid; registers microgrids with the coordinator.
+- For each timestep in a scenario:
+  1) Step each simulator (can toggle grid availability to model outages).
+  2) Update each twin with simulator outputs (state mirroring + forecast history update).
+  3) Pass states to the coordinator; run coordination (priority-aware shedding; or proactive if enabled).
+  4) Record city metrics (resilience, load served/shed) and store per-microgrid actions.
+- Exports per-scenario CSV and summary JSON to city_simulation_results/.
+
+Outputs
+-------
+- city_simulation_results/<scenario>/ coordination CSV + summary JSON.
+- digital_twin_logs/ (state updates, DR alerts, EMS commands, MQTT telemetry, summary reports, etc.).
+
+How to Run (baseline)
+---------------------
+- Install deps: pip install pandas numpy matplotlib plotly streamlit
+- Run simulations: python run_digital_twin_city_simulation.py
+- (Optional) Dashboard: streamlit run Visualization/streamlit_dashboard.py
+
+What’s Proven
+-------------
+- Four heterogeneous microgrids modeled and loaded via factory.
+- One digital twin per microgrid with state mirroring and 6h forecasting.
+- Priority-aware resilience enforcement (critical load protection first).
+- City-level survivability metrics (resilience score, critical satisfaction, load served/shed) tracked across outage scenarios.
+- Optional forecast-aware coordination and power-exchange layer are implemented and ready to enable.
+
+If you want next
+----------------
+- Switch default coordinator to the proactive (forecast-aware) version.
+- Define a sample transmission-line map and enable power exchange to demo surplus/deficit transfers.
+- Add scenario configs for custom outage windows.
