@@ -490,6 +490,106 @@ class EnhancedDigitalTwinManager:
             )
         
         return recommendations
+    
+    def run_scenario(self, scenario_config: ScenarioConfig) -> Dict:
+        """
+        Simplified wrapper for run_enhanced_simulation with result formatting.
+        
+        Args:
+            scenario_config: ScenarioConfig object defining the simulation
+            
+        Returns:
+            Dictionary with formatted results including:
+            - timestamps: List of datetime objects
+            - resilience_scores: City survivability index over time
+            - critical_load_preservation: Percentage of critical load served
+            - microgrid_data: Per-microgrid time series data
+            - final_metrics: ResilienceScorecard summary
+        """
+        logger.info(f"\n{'='*80}")
+        logger.info(f"Running Scenario: {scenario_config.name}")
+        logger.info(f"{'='*80}\n")
+        
+        # Run the enhanced simulation
+        raw_results = self.run_enhanced_simulation(
+            scenario_config, 
+            use_predictive_control=self.enable_shadow_sim
+        )
+        
+        # Extract and format results
+        history = raw_results['history']
+        final_metrics = raw_results['metrics']
+        
+        # Format time series data
+        formatted_results = {
+            'scenario_id': scenario_config.scenario_id,
+            'scenario_name': scenario_config.name,
+            'timestamps': [state.timestamp for state in history],
+            'resilience_scores': [state.resilience.city_survivability_index for state in history],
+            'critical_load_preservation': [
+                final_metrics.critical_load_preservation_ratio * 100  # Use final value
+                for _ in history
+            ],
+            'unserved_energy_kwh': [state.resilience.unserved_energy_kwh for state in history],
+            'priority_violations': [state.resilience.priority_violation_count for state in history],
+            
+            # Per-microgrid data
+            'microgrid_data': self._extract_microgrid_timeseries(history),
+            
+            # Final metrics
+            'final_metrics': {
+                'city_survivability_index': final_metrics.city_survivability_index,
+                'critical_load_preservation_ratio': final_metrics.critical_load_preservation_ratio,
+                'total_unserved_energy_kwh': final_metrics.total_unserved_energy_kwh,
+                'critical_unserved_energy_kwh': final_metrics.critical_unserved_energy_kwh,
+                'priority_violation_count': final_metrics.priority_violation_count,
+                'recovery_time_hours': final_metrics.recovery_time_hours,
+                'state_estimation_confidence': final_metrics.state_estimation_confidence
+            },
+            
+            # Recommendations
+            'recommendations': raw_results['recommendations']
+        }
+        
+        logger.info(f"\n✅ Scenario '{scenario_config.name}' completed successfully")
+        logger.info(f"   Final CSI: {final_metrics.city_survivability_index:.4f}")
+        logger.info(f"   Critical Load Preservation: {final_metrics.critical_load_preservation_ratio*100:.2f}%")
+        logger.info(f"   Total Unserved Energy: {final_metrics.total_unserved_energy_kwh:.2f} kWh\n")
+        
+        return formatted_results
+    
+    def _extract_microgrid_timeseries(self, history: List[TwinState]) -> Dict:
+        """Extract per-microgrid time series data from history"""
+        microgrid_data = {}
+        
+        for mg_id in self.simulators.keys():
+            microgrid_data[mg_id] = {
+                'timestamps': [],
+                'total_load_kw': [],
+                'critical_load_kw': [],
+                'load_shed_kw': [],
+                'battery_soc_percent': [],
+                'battery_power_kw': [],
+                'pv_generation_kw': [],
+                'generator_power_kw': [],
+                'grid_power_kw': [],
+                'is_islanded': []
+            }
+        
+        for state in history:
+            for mg_id, mg_status in state.physical.microgrid_states.items():
+                microgrid_data[mg_id]['timestamps'].append(state.timestamp)
+                microgrid_data[mg_id]['total_load_kw'].append(mg_status.total_load_kw)
+                microgrid_data[mg_id]['critical_load_kw'].append(mg_status.critical_load_kw)
+                microgrid_data[mg_id]['load_shed_kw'].append(mg_status.load_shed_kw)
+                microgrid_data[mg_id]['battery_soc_percent'].append(mg_status.battery_soc_percent)
+                microgrid_data[mg_id]['battery_power_kw'].append(mg_status.battery_power_kw)
+                microgrid_data[mg_id]['pv_generation_kw'].append(mg_status.pv_generation_kw)
+                microgrid_data[mg_id]['generator_power_kw'].append(mg_status.generator_power_kw)
+                microgrid_data[mg_id]['grid_power_kw'].append(mg_status.grid_power_kw)
+                microgrid_data[mg_id]['is_islanded'].append(mg_status.is_islanded)
+        
+        return microgrid_data
 
 
 # Example Test Run

@@ -35,7 +35,7 @@ class MicrogridFactory:
             return create_default_config()
             
         elif microgrid_type == MicrogridType.RESIDENCE:
-            from Microgrid.residence.residence_parameters import create_default_config
+            from Microgrid.residence.residential_parameters import create_default_config
             return create_default_config()
             
         elif microgrid_type == MicrogridType.INDUSTRIAL:
@@ -50,19 +50,19 @@ class MicrogridFactory:
         microgrid_type = microgrid_type.lower()
         
         if microgrid_type == MicrogridType.HOSPITAL:
-            from Microgrid.Hospital.microgrid_simulator import MicrogridSimulator
+            from Microgrid.Hospital.hospital_simulator import MicrogridSimulator
             return MicrogridSimulator(config)
             
         elif microgrid_type == MicrogridType.UNIVERSITY:
-            from Microgrid.university_microgrid.microgrid_simulator import MicrogridSimulator
+            from Microgrid.university_microgrid.university_simulator import MicrogridSimulator
             return MicrogridSimulator(config)
             
         elif microgrid_type == MicrogridType.RESIDENCE:
-            from Microgrid.residence.residence_simulator import MicrogridSimulator
+            from Microgrid.residence.residential_simulator import MicrogridSimulator
             return MicrogridSimulator(config)
             
         elif microgrid_type == MicrogridType.INDUSTRIAL:
-            from Microgrid.Industry_microgrid.industrial_microgrid_simulator import MicrogridSimulator
+            from Microgrid.Industry_microgrid.industrial_simulator import MicrogridSimulator
             return MicrogridSimulator(config)
         
         raise ValueError(f"Unknown microgrid type: {microgrid_type}")
