@@ -1,0 +1,17 @@
+{
+  "scenario_id": "outage_12h_001",
+  "scenario_name": "12-Hour Extended Outage",
+  "final_metrics": {
+    "city_survivability_index": 0.465807130429093,
+    "critical_load_preservation_ratio": 0.9544575103646271,
+    "total_unserved_energy_kwh": 0.0,
+    "critical_unserved_energy_kwh": 3606.9651791215315,
+    "priority_violation_count": 180,
+    "recovery_time_hours": 6.0,
+    "state_estimation_confidence": 0.9788749672334198
+  },
+  "recommendations": [
+    "180 priority violations detected. Review CityEMS coordination logic to ensure high-priority microgrids receive resources before low-priority ones."
+  ],
+  "execution_timestamp": "2026-01-27T23:19:44.451811"
+}

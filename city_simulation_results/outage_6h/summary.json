@@ -1,0 +1,18 @@
+{
+  "scenario_id": "outage_6h_001",
+  "scenario_name": "6-Hour Grid Outage",
+  "final_metrics": {
+    "city_survivability_index": 0.5233030510786487,
+    "critical_load_preservation_ratio": 0.9496509288685518,
+    "total_unserved_energy_kwh": 0.0,
+    "critical_unserved_energy_kwh": 2392.587860166418,
+    "priority_violation_count": 120,
+    "recovery_time_hours": 6.0,
+    "state_estimation_confidence": 0.9788749672334198
+  },
+  "recommendations": [
+    "Critical load preservation below 95% target. Consider: (1) Increase battery capacity, (2) Add redundant generators, (3) Implement more aggressive early load shedding.",
+    "120 priority violations detected. Review CityEMS coordination logic to ensure high-priority microgrids receive resources before low-priority ones."
+  ],
+  "execution_timestamp": "2026-01-27T23:19:41.751586"
+}

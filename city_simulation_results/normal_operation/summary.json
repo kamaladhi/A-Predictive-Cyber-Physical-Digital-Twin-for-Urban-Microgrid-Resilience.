@@ -1,0 +1,18 @@
+{
+  "scenario_id": "normal_op_001",
+  "scenario_name": "Normal Operation",
+  "final_metrics": {
+    "city_survivability_index": 0.5862045128927763,
+    "critical_load_preservation_ratio": 0.9435237418085096,
+    "total_unserved_energy_kwh": 0.0,
+    "critical_unserved_energy_kwh": 1192.7785730042817,
+    "priority_violation_count": 60,
+    "recovery_time_hours": 0.0,
+    "state_estimation_confidence": 0.9788749672164001
+  },
+  "recommendations": [
+    "Critical load preservation below 95% target. Consider: (1) Increase battery capacity, (2) Add redundant generators, (3) Implement more aggressive early load shedding.",
+    "60 priority violations detected. Review CityEMS coordination logic to ensure high-priority microgrids receive resources before low-priority ones."
+  ],
+  "execution_timestamp": "2026-01-27T23:19:39.810166"
+}
