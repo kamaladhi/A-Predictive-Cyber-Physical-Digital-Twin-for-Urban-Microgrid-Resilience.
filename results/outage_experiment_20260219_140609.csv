@@ -1,0 +1,16 @@
+config,config_key,trial_seed,n_outage_events,total_ens_kwh,critical_ens_kwh,recovery_time_hours,cascade_events_triggered,cascade_events_prevented,shared_generation_kwh,generator_usage_total_kwh,secondary_instability_events,SAIDI,SAIFI,CAIDI,EENS,LOLP,ASAI,trial_idx
+Baseline (Isolated),A,42,0,0.0,0.0,2.93,1,0,0,0.0,2,0.0,0.0,0,0.0,0.0,1.0,0
+Sharing Only,B,42,0,0.0,0.0,2.93,0,0,0.0,0.0,2,0.0,0.0,0,0.0,0.0,1.0,0
+Full Coordination,C,42,0,0.0,0.0,1.46,0,0,0.0,0.0,1,0.0,0.0,0,0.0,0.0,1.0,0
+Baseline (Isolated),A,43,0,0.0,0.0,2.55,1,0,0,0.0,0,0.0,0.0,0,0.0,0.0,1.0,1
+Sharing Only,B,43,0,0.0,0.0,2.55,0,2,0.0,0.0,0,0.0,0.0,0,0.0,0.0,1.0,1
+Full Coordination,C,43,0,0.0,0.0,1.23,0,2,0.0,0.0,0,0.0,0.0,0,0.0,0.0,1.0,1
+Baseline (Isolated),A,44,0,0.0,0.0,3.66,4,0,0,0.0,2,0.0,0.0,0,0.0,0.0,1.0,2
+Sharing Only,B,44,0,0.0,0.0,3.66,0,3,0.0,0.0,2,0.0,0.0,0,0.0,0.0,1.0,2
+Full Coordination,C,44,0,0.0,0.0,1.89,1,1,0.0,0.0,0,0.0,0.0,0,0.0,0.0,1.0,2
+Baseline (Isolated),A,45,0,0.0,0.0,3.13,2,0,0,0.0,1,0.0,0.0,0,0.0,0.0,1.0,3
+Sharing Only,B,45,0,0.0,0.0,3.13,0,1,0.0,0.0,1,0.0,0.0,0,0.0,0.0,1.0,3
+Full Coordination,C,45,0,0.0,0.0,1.58,0,1,0.0,0.0,0,0.0,0.0,0,0.0,0.0,1.0,3
+Baseline (Isolated),A,46,1,58.74,8.81,3.62,1,0,0,35.24,2,0.5,1.0,0.5,58.74,0.041667,0.979167,4
+Sharing Only,B,46,1,38.18,5.73,3.62,1,2,16.2,35.24,2,0.375,0.75,0.5,38.18,0.03125,0.984375,4
+Full Coordination,C,46,1,30.54,4.58,1.87,1,1,16.2,26.43,0,0.25,0.5,0.5,30.54,0.020833,0.989583,4

@@ -1,0 +1,12 @@
+{
+  "total_solves": 96,
+  "optimal_count": 96,
+  "infeasible_count": 0,
+  "infeasibility_rate": 0.0,
+  "fallback_count": 0,
+  "avg_solve_time_ms": 4.0,
+  "total_solve_time_ms": 383.96,
+  "horizon_steps": 8,
+  "horizon_hours": 2.0,
+  "total_records": 96
+}

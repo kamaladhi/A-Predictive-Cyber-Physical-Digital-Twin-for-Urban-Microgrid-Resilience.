@@ -379,6 +379,19 @@ CSI: 1.0000 | CLPR: 100.0%
 - Power generation vs load
 - Load shedding profile
 
+#### 🚀 Quick Start (IEMS Showcase)
+To run the full comparative experiment (Rule-Based vs MPC vs MPC+DR) and view the results summary:
+
+```powershell
+python run_demonstration.py
+```
+
+### 📊 Comparative Analysis
+To run specific experiments manually:
+- **Predictive MPC (IEMS)**: `python run_predictive_experiment.py --trials 10 --days 7`
+- **Legacy LP Optimization**: `python run_optimization_experiment.py`
+- **Rule-Based Baseline**: `python run_outage_experiment.py`
+
 #### 6. Comparative Analysis
 - Side-by-side comparison of all 4 microgrids
 - Multiple metric options
@@ -484,7 +497,13 @@ Digital-twin-microgrid/
 - Refactored city EMS shedding logic
 - Implemented strict tier-by-tier allocation
 - Result: Zero violations across all scenarios (60→0, 120→0, 180→0)
+The successful completion of these trials confirms the stability and scalability of the Digital Twin framework for city-level coordination.
 
+> [!NOTE]
+> **Showcase Command**: You can run the entire suite at once using the master orchestrator:
+> `python run_demonstration.py`
+
+---
 ### 3. University EMS Refactoring ✅
 - Modified to prevent autonomous critical shedding
 - Power deficit-based shedding only

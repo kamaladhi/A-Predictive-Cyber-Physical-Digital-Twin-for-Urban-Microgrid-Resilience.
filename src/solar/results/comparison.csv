@@ -1,0 +1,17 @@
+Metric,Forecast-Aware,Baseline
+Generator Running Steps,220,214
+Generator Energy (kWh),16993.5,16507.7
+Load Shed Events,64,67
+Load Shed Energy (kWh),2009.7,2510.9
+Battery Throughput (kWh),9013.6,8832.8
+Battery Equiv. Cycles,7.51,7.36
+LOLP,0.1905,0.1994
+EENS (kWh),2009.7,2510.9
+Gen Energy DJF (kWh),0.0,0.0
+Gen Energy MAM (kWh),0.0,0.0
+Gen Energy JJA (kWh),16993.5,16507.7
+Gen Energy SON (kWh),0.0,0.0
+Unserved Energy DJF (kWh),0.0,0.0
+Unserved Energy MAM (kWh),0.0,0.0
+Unserved Energy JJA (kWh),2009.7,2510.9
+Unserved Energy SON (kWh),0.0,0.0

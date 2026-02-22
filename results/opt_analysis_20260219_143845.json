@@ -1,0 +1,351 @@
+{
+  "descriptive": {
+    "Rule-Based": {
+      "total_ens_kwh": {
+        "mean": 4421.83,
+        "std": 106.0793,
+        "ci95": [
+          4328.8474,
+          4514.8126
+        ],
+        "n": 5
+      },
+      "critical_ens_kwh": {
+        "mean": 1088.434,
+        "std": 32.6424,
+        "ci95": [
+          1059.8217,
+          1117.0463
+        ],
+        "n": 5
+      },
+      "total_fuel_cost_usd": {
+        "mean": 1419.984,
+        "std": 3.7534,
+        "ci95": [
+          1416.694,
+          1423.274
+        ],
+        "n": 5
+      },
+      "total_gen_kwh": {
+        "mean": 4733.278,
+        "std": 12.5178,
+        "ci95": [
+          4722.3057,
+          4744.2503
+        ],
+        "n": 5
+      },
+      "total_batt_cycling_kwh": {
+        "mean": 939.354,
+        "std": 30.4642,
+        "ci95": [
+          912.6509,
+          966.0571
+        ],
+        "n": 5
+      },
+      "shed_steps": {
+        "mean": 41.0,
+        "std": 1.4142,
+        "ci95": [
+          39.7604,
+          42.2396
+        ],
+        "n": 5
+      },
+      "hospital_ens": {
+        "mean": 1088.434,
+        "std": 32.6424,
+        "ci95": [
+          1059.8217,
+          1117.0463
+        ],
+        "n": 5
+      },
+      "SAIDI": {
+        "mean": 5.125,
+        "std": 0.1768,
+        "ci95": [
+          4.97,
+          5.28
+        ],
+        "n": 5
+      },
+      "SAIFI": {
+        "mean": 10.25,
+        "std": 0.3536,
+        "ci95": [
+          9.9401,
+          10.5599
+        ],
+        "n": 5
+      },
+      "LOLP": {
+        "mean": 0.4271,
+        "std": 0.0147,
+        "ci95": [
+          0.4142,
+          0.44
+        ],
+        "n": 5
+      },
+      "ASAI": {
+        "mean": 0.7865,
+        "std": 0.0074,
+        "ci95": [
+          0.78,
+          0.7929
+        ],
+        "n": 5
+      }
+    },
+    "LP-Optimized": {
+      "total_ens_kwh": {
+        "mean": 4421.83,
+        "std": 106.0793,
+        "ci95": [
+          4328.8474,
+          4514.8126
+        ],
+        "n": 5
+      },
+      "critical_ens_kwh": {
+        "mean": 1088.434,
+        "std": 32.6424,
+        "ci95": [
+          1059.8217,
+          1117.0463
+        ],
+        "n": 5
+      },
+      "total_fuel_cost_usd": {
+        "mean": 1419.984,
+        "std": 3.7534,
+        "ci95": [
+          1416.694,
+          1423.274
+        ],
+        "n": 5
+      },
+      "total_gen_kwh": {
+        "mean": 4733.278,
+        "std": 12.5178,
+        "ci95": [
+          4722.3057,
+          4744.2503
+        ],
+        "n": 5
+      },
+      "total_batt_cycling_kwh": {
+        "mean": 939.354,
+        "std": 30.4642,
+        "ci95": [
+          912.6509,
+          966.0571
+        ],
+        "n": 5
+      },
+      "shed_steps": {
+        "mean": 41.0,
+        "std": 1.4142,
+        "ci95": [
+          39.7604,
+          42.2396
+        ],
+        "n": 5
+      },
+      "hospital_ens": {
+        "mean": 1088.434,
+        "std": 32.6424,
+        "ci95": [
+          1059.8217,
+          1117.0463
+        ],
+        "n": 5
+      },
+      "SAIDI": {
+        "mean": 5.125,
+        "std": 0.1768,
+        "ci95": [
+          4.97,
+          5.28
+        ],
+        "n": 5
+      },
+      "SAIFI": {
+        "mean": 10.25,
+        "std": 0.3536,
+        "ci95": [
+          9.9401,
+          10.5599
+        ],
+        "n": 5
+      },
+      "LOLP": {
+        "mean": 0.4271,
+        "std": 0.0147,
+        "ci95": [
+          0.4142,
+          0.44
+        ],
+        "n": 5
+      },
+      "ASAI": {
+        "mean": 0.7865,
+        "std": 0.0074,
+        "ci95": [
+          0.78,
+          0.7929
+        ],
+        "n": 5
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "metric": "total_ens_kwh",
+      "rule_based_mean": 4421.83,
+      "optimized_mean": 4421.83,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "critical_ens_kwh",
+      "rule_based_mean": 1088.434,
+      "optimized_mean": 1088.434,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "total_fuel_cost_usd",
+      "rule_based_mean": 1419.984,
+      "optimized_mean": 1419.984,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "total_gen_kwh",
+      "rule_based_mean": 4733.278,
+      "optimized_mean": 4733.278,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "total_batt_cycling_kwh",
+      "rule_based_mean": 939.354,
+      "optimized_mean": 939.354,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "shed_steps",
+      "rule_based_mean": 41.0,
+      "optimized_mean": 41.0,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "hospital_ens",
+      "rule_based_mean": 1088.434,
+      "optimized_mean": 1088.434,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "SAIDI",
+      "rule_based_mean": 5.125,
+      "optimized_mean": 5.125,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "SAIFI",
+      "rule_based_mean": 10.25,
+      "optimized_mean": 10.25,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "LOLP",
+      "rule_based_mean": 0.4271,
+      "optimized_mean": 0.4271,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    },
+    {
+      "metric": "ASAI",
+      "rule_based_mean": 0.7865,
+      "optimized_mean": 0.7865,
+      "pct_change": 0.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "w_pvalue": 1.0,
+      "cohens_d": 0.0,
+      "effect_size": "negligible",
+      "significant": false,
+      "bonferroni_alpha": 0.004545
+    }
+  ]
+}

@@ -1,0 +1,739 @@
+{
+  "experiment_info": {
+    "n_trials": 5,
+    "configs": [
+      "Rule-Based",
+      "MPC-Optimized"
+    ],
+    "timestamp": "2026-02-19T16:18:42.703117"
+  },
+  "descriptive": {
+    "Rule-Based": {
+      "total_ens_kwh": {
+        "mean": 17.426,
+        "std": 24.0576,
+        "se": 10.7589,
+        "ci95": [
+          -3.6614,
+          38.5134
+        ],
+        "min": 0.0,
+        "max": 47.9,
+        "median": 0.0,
+        "n": 5
+      },
+      "critical_ens_kwh": {
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "min": 0.0,
+        "max": 0.0,
+        "median": 0.0,
+        "n": 5
+      },
+      "total_fuel_cost_usd": {
+        "mean": 566.32,
+        "std": 255.862,
+        "se": 114.425,
+        "ci95": [
+          342.0471,
+          790.5929
+        ],
+        "min": 252.32,
+        "max": 886.38,
+        "median": 555.89,
+        "n": 5
+      },
+      "total_gen_kwh": {
+        "mean": 1887.74,
+        "std": 852.8739,
+        "se": 381.4168,
+        "ci95": [
+          1140.1631,
+          2635.3169
+        ],
+        "min": 841.08,
+        "max": 2954.61,
+        "median": 1852.98,
+        "n": 5
+      },
+      "total_batt_cycling_kwh": {
+        "mean": 731.278,
+        "std": 194.7443,
+        "se": 87.0923,
+        "ci95": [
+          560.5771,
+          901.9789
+        ],
+        "min": 563.91,
+        "max": 1052.3,
+        "median": 644.09,
+        "n": 5
+      },
+      "shed_steps": {
+        "mean": 1.6,
+        "std": 2.6077,
+        "se": 1.1662,
+        "ci95": [
+          -0.6857,
+          3.8857
+        ],
+        "min": 0.0,
+        "max": 6.0,
+        "median": 0.0,
+        "n": 5
+      },
+      "hospital_ens": {
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "min": 0.0,
+        "max": 0.0,
+        "median": 0.0,
+        "n": 5
+      },
+      "university_ens": {
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "min": 0.0,
+        "max": 0.0,
+        "median": 0.0,
+        "n": 5
+      },
+      "industrial_ens": {
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "min": 0.0,
+        "max": 0.0,
+        "median": 0.0,
+        "n": 5
+      },
+      "residential_ens": {
+        "mean": 17.426,
+        "std": 24.0576,
+        "se": 10.7589,
+        "ci95": [
+          -3.6614,
+          38.5134
+        ],
+        "min": 0.0,
+        "max": 47.9,
+        "median": 0.0,
+        "n": 5
+      },
+      "SAIDI": {
+        "mean": 0.1,
+        "std": 0.163,
+        "se": 0.0729,
+        "ci95": [
+          -0.0429,
+          0.2429
+        ],
+        "min": 0.0,
+        "max": 0.375,
+        "median": 0.0,
+        "n": 5
+      },
+      "SAIFI": {
+        "mean": 0.1,
+        "std": 0.1369,
+        "se": 0.0612,
+        "ci95": [
+          -0.02,
+          0.22
+        ],
+        "min": 0.0,
+        "max": 0.25,
+        "median": 0.0,
+        "n": 5
+      },
+      "CAIDI": {
+        "mean": 0.4,
+        "std": 0.6519,
+        "se": 0.2915,
+        "ci95": [
+          -0.1714,
+          0.9714
+        ],
+        "min": 0.0,
+        "max": 1.5,
+        "median": 0.0,
+        "n": 5
+      },
+      "EENS": {
+        "mean": 17.426,
+        "std": 24.0576,
+        "se": 10.7589,
+        "ci95": [
+          -3.6614,
+          38.5134
+        ],
+        "min": 0.0,
+        "max": 47.9,
+        "median": 0.0,
+        "n": 5
+      },
+      "LOLP": {
+        "mean": 0.0056,
+        "std": 0.0091,
+        "se": 0.004,
+        "ci95": [
+          -0.0024,
+          0.0135
+        ],
+        "min": 0.0,
+        "max": 0.0208,
+        "median": 0.0,
+        "n": 5
+      },
+      "ASAI": {
+        "mean": 0.9986,
+        "std": 0.0023,
+        "se": 0.001,
+        "ci95": [
+          0.9966,
+          1.0006
+        ],
+        "min": 0.9948,
+        "max": 1.0,
+        "median": 1.0,
+        "n": 5
+      },
+      "avg_recovery_hours": {
+        "mean": 0.4,
+        "std": 0.6519,
+        "se": 0.2915,
+        "ci95": [
+          -0.1714,
+          0.9714
+        ],
+        "min": 0.0,
+        "max": 1.5,
+        "median": 0.0,
+        "n": 5
+      }
+    },
+    "MPC-Optimized": {
+      "total_ens_kwh": {
+        "mean": 384.624,
+        "std": 83.7734,
+        "se": 37.4646,
+        "ci95": [
+          311.1933,
+          458.0547
+        ],
+        "min": 289.9,
+        "max": 479.77,
+        "median": 345.58,
+        "n": 5
+      },
+      "critical_ens_kwh": {
+        "mean": 129.726,
+        "std": 36.3034,
+        "se": 16.2354,
+        "ci95": [
+          97.9046,
+          161.5474
+        ],
+        "min": 89.37,
+        "max": 175.48,
+        "median": 143.09,
+        "n": 5
+      },
+      "total_fuel_cost_usd": {
+        "mean": 285.498,
+        "std": 247.5396,
+        "se": 110.7031,
+        "ci95": [
+          68.52,
+          502.476
+        ],
+        "min": 0.0,
+        "max": 597.57,
+        "median": 239.81,
+        "n": 5
+      },
+      "total_gen_kwh": {
+        "mean": 951.66,
+        "std": 825.13,
+        "se": 369.0094,
+        "ci95": [
+          228.4016,
+          1674.9184
+        ],
+        "min": 0.0,
+        "max": 1991.91,
+        "median": 799.37,
+        "n": 5
+      },
+      "total_batt_cycling_kwh": {
+        "mean": 2122.038,
+        "std": 516.3479,
+        "se": 230.9178,
+        "ci95": [
+          1669.4391,
+          2574.6369
+        ],
+        "min": 1318.4,
+        "max": 2602.63,
+        "median": 2353.09,
+        "n": 5
+      },
+      "shed_steps": {
+        "mean": 13.0,
+        "std": 5.3852,
+        "se": 2.4083,
+        "ci95": [
+          8.2797,
+          17.7203
+        ],
+        "min": 6.0,
+        "max": 18.0,
+        "median": 14.0,
+        "n": 5
+      },
+      "hospital_ens": {
+        "mean": 129.726,
+        "std": 36.3034,
+        "se": 16.2354,
+        "ci95": [
+          97.9046,
+          161.5474
+        ],
+        "min": 89.37,
+        "max": 175.48,
+        "median": 143.09,
+        "n": 5
+      },
+      "university_ens": {
+        "mean": 24.16,
+        "std": 4.3601,
+        "se": 1.9499,
+        "ci95": [
+          20.3382,
+          27.9818
+        ],
+        "min": 18.3,
+        "max": 29.94,
+        "median": 24.9,
+        "n": 5
+      },
+      "industrial_ens": {
+        "mean": 103.766,
+        "std": 53.7744,
+        "se": 24.0486,
+        "ci95": [
+          56.6307,
+          150.9013
+        ],
+        "min": 65.37,
+        "max": 197.54,
+        "median": 86.58,
+        "n": 5
+      },
+      "residential_ens": {
+        "mean": 126.972,
+        "std": 45.8559,
+        "se": 20.5074,
+        "ci95": [
+          86.7775,
+          167.1665
+        ],
+        "min": 82.11,
+        "max": 192.82,
+        "median": 109.39,
+        "n": 5
+      },
+      "SAIDI": {
+        "mean": 1.8125,
+        "std": 0.7221,
+        "se": 0.323,
+        "ci95": [
+          1.1795,
+          2.4455
+        ],
+        "min": 0.875,
+        "max": 2.6875,
+        "median": 1.8125,
+        "n": 5
+      },
+      "SAIFI": {
+        "mean": 3.4,
+        "std": 1.3532,
+        "se": 0.6052,
+        "ci95": [
+          2.2138,
+          4.5862
+        ],
+        "min": 2.0,
+        "max": 5.5,
+        "median": 3.25,
+        "n": 5
+      },
+      "CAIDI": {
+        "mean": 0.5301,
+        "std": 0.0688,
+        "se": 0.0308,
+        "ci95": [
+          0.4698,
+          0.5904
+        ],
+        "min": 0.4375,
+        "max": 0.6167,
+        "median": 0.55,
+        "n": 5
+      },
+      "EENS": {
+        "mean": 384.624,
+        "std": 83.7734,
+        "se": 37.4646,
+        "ci95": [
+          311.1933,
+          458.0547
+        ],
+        "min": 289.9,
+        "max": 479.77,
+        "median": 345.58,
+        "n": 5
+      },
+      "LOLP": {
+        "mean": 0.0451,
+        "std": 0.0187,
+        "se": 0.0084,
+        "ci95": [
+          0.0287,
+          0.0615
+        ],
+        "min": 0.0208,
+        "max": 0.0625,
+        "median": 0.0486,
+        "n": 5
+      },
+      "ASAI": {
+        "mean": 0.9748,
+        "std": 0.01,
+        "se": 0.0045,
+        "ci95": [
+          0.966,
+          0.9836
+        ],
+        "min": 0.9627,
+        "max": 0.9878,
+        "median": 0.9748,
+        "n": 5
+      },
+      "avg_recovery_hours": {
+        "mean": 0.5661,
+        "std": 0.0526,
+        "se": 0.0235,
+        "ci95": [
+          0.52,
+          0.6121
+        ],
+        "min": 0.4917,
+        "max": 0.6302,
+        "median": 0.5729,
+        "n": 5
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "metric": "total_ens_kwh",
+      "rule_based_mean": 17.426,
+      "optimized_mean": 384.624,
+      "mean_difference": -367.198,
+      "pct_change": -2107.18,
+      "t_statistic": -10.5268,
+      "t_pvalue": 0.00046056,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -5.958,
+      "effect_size": "large",
+      "significant_bonferroni": true,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "critical_ens_kwh",
+      "rule_based_mean": 0.0,
+      "optimized_mean": 129.726,
+      "mean_difference": -129.726,
+      "pct_change": 0.0,
+      "t_statistic": -7.9903,
+      "t_pvalue": 0.00133,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -5.0535,
+      "effect_size": "large",
+      "significant_bonferroni": true,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "total_fuel_cost_usd",
+      "rule_based_mean": 566.32,
+      "optimized_mean": 285.498,
+      "mean_difference": 280.822,
+      "pct_change": 49.59,
+      "t_statistic": 26.3606,
+      "t_pvalue": 1.231e-05,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": 1.1155,
+      "effect_size": "large",
+      "significant_bonferroni": true,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "total_gen_kwh",
+      "rule_based_mean": 1887.74,
+      "optimized_mean": 951.66,
+      "mean_difference": 936.08,
+      "pct_change": 49.59,
+      "t_statistic": 26.3618,
+      "t_pvalue": 1.231e-05,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": 1.1156,
+      "effect_size": "large",
+      "significant_bonferroni": true,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "total_batt_cycling_kwh",
+      "rule_based_mean": 731.278,
+      "optimized_mean": 2122.038,
+      "mean_difference": -1390.76,
+      "pct_change": -190.18,
+      "t_statistic": -7.8378,
+      "t_pvalue": 0.00143108,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -3.5641,
+      "effect_size": "large",
+      "significant_bonferroni": true,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "shed_steps",
+      "rule_based_mean": 1.6,
+      "optimized_mean": 13.0,
+      "mean_difference": -11.4,
+      "pct_change": -712.5,
+      "t_statistic": -5.1188,
+      "t_pvalue": 0.00689211,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -2.6945,
+      "effect_size": "large",
+      "significant_bonferroni": false,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "hospital_ens",
+      "rule_based_mean": 0.0,
+      "optimized_mean": 129.726,
+      "mean_difference": -129.726,
+      "pct_change": 0.0,
+      "t_statistic": -7.9903,
+      "t_pvalue": 0.00133,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -5.0535,
+      "effect_size": "large",
+      "significant_bonferroni": true,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "university_ens",
+      "rule_based_mean": 0.0,
+      "optimized_mean": 24.16,
+      "mean_difference": -24.16,
+      "pct_change": 0.0,
+      "t_statistic": -12.3905,
+      "t_pvalue": 0.00024388,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -7.8364,
+      "effect_size": "large",
+      "significant_bonferroni": true,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "industrial_ens",
+      "rule_based_mean": 0.0,
+      "optimized_mean": 103.766,
+      "mean_difference": -103.766,
+      "pct_change": 0.0,
+      "t_statistic": -4.3148,
+      "t_pvalue": 0.01249819,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -2.7289,
+      "effect_size": "large",
+      "significant_bonferroni": false,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "residential_ens",
+      "rule_based_mean": 17.426,
+      "optimized_mean": 126.972,
+      "mean_difference": -109.546,
+      "pct_change": -628.64,
+      "t_statistic": -10.3693,
+      "t_pvalue": 0.00048831,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -2.9917,
+      "effect_size": "large",
+      "significant_bonferroni": true,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "SAIDI",
+      "rule_based_mean": 0.1,
+      "optimized_mean": 1.8125,
+      "mean_difference": -1.7125,
+      "pct_change": -1712.5,
+      "t_statistic": -5.5176,
+      "t_pvalue": 0.00526687,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -3.2714,
+      "effect_size": "large",
+      "significant_bonferroni": false,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "SAIFI",
+      "rule_based_mean": 0.1,
+      "optimized_mean": 3.4,
+      "mean_difference": -3.3,
+      "pct_change": -3300.0,
+      "t_statistic": -5.3271,
+      "t_pvalue": 0.00597697,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -3.4312,
+      "effect_size": "large",
+      "significant_bonferroni": false,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "CAIDI",
+      "rule_based_mean": 0.4,
+      "optimized_mean": 0.5301,
+      "mean_difference": -0.1301,
+      "pct_change": -32.52,
+      "t_statistic": -0.485,
+      "t_pvalue": 0.65305344,
+      "wilcoxon_pvalue": 0.625,
+      "cohens_d": -0.2807,
+      "effect_size": "small",
+      "significant_bonferroni": false,
+      "significant_nominal": false,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "EENS",
+      "rule_based_mean": 17.426,
+      "optimized_mean": 384.624,
+      "mean_difference": -367.198,
+      "pct_change": -2107.18,
+      "t_statistic": -10.5268,
+      "t_pvalue": 0.00046056,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -5.958,
+      "effect_size": "large",
+      "significant_bonferroni": true,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "LOLP",
+      "rule_based_mean": 0.0056,
+      "optimized_mean": 0.0451,
+      "mean_difference": -0.0396,
+      "pct_change": -712.52,
+      "t_statistic": -5.1188,
+      "t_pvalue": 0.00689205,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": -2.6945,
+      "effect_size": "large",
+      "significant_bonferroni": false,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "ASAI",
+      "rule_based_mean": 0.9986,
+      "optimized_mean": 0.9748,
+      "mean_difference": 0.0238,
+      "pct_change": 2.38,
+      "t_statistic": 5.5176,
+      "t_pvalue": 0.00526687,
+      "wilcoxon_pvalue": 0.0625,
+      "cohens_d": 3.2714,
+      "effect_size": "large",
+      "significant_bonferroni": false,
+      "significant_nominal": true,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    },
+    {
+      "metric": "avg_recovery_hours",
+      "rule_based_mean": 0.4,
+      "optimized_mean": 0.5661,
+      "mean_difference": -0.1661,
+      "pct_change": -41.51,
+      "t_statistic": -0.604,
+      "t_pvalue": 0.57842852,
+      "wilcoxon_pvalue": 0.625,
+      "cohens_d": -0.3591,
+      "effect_size": "small",
+      "significant_bonferroni": false,
+      "significant_nominal": false,
+      "bonferroni_alpha": 0.002941,
+      "n_pairs": 5
+    }
+  ],
+  "experiment_config": {
+    "trials": 5,
+    "days": 3.0,
+    "seed": 42,
+    "horizon": 8,
+    "policy": "critical_first"
+  }
+}
