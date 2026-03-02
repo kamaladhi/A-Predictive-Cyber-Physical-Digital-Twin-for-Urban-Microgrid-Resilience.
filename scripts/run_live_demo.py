@@ -46,15 +46,16 @@ def main():
         parser.add_argument('--shortage', action='store_true')
         args, _ = parser.parse_known_args()
 
-        # Run a 3-day simulation in real-time mode
+        # Run a 365-day simulation in real-time mode to prevent premature exit during the demo
         exp_path = os.path.join(script_dir, "run_experiment.py")
         sim_cmd = [
             sys.executable, 
             exp_path, 
             "--trials", "1", 
-            "--days", "3.0",
+            "--days", "365.0",
             "--mqtt",
-            "--realtime", "60.0" # 60x speed (1 min per sec)
+            "--config", "MPC+DR-Optimized",
+            "--realtime", "3600.0" # 3600x speed (1 hour per sec)
         ]
         
         if args.outage:

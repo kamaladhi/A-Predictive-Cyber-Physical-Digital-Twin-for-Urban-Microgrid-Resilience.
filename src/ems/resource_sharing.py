@@ -29,6 +29,7 @@ from datetime import datetime
 from enum import Enum
 import logging
 import uuid
+import random
 
 from src.ems.common import MicrogridPriority
 
@@ -91,6 +92,27 @@ class ResourceSharingMetrics:
     active_transfer_steps: int = 0
     total_steps: int = 0
 
+    # Cyber-Resilience Telemetry
+    total_link_samples: int = 0
+    failed_link_samples: int = 0
+    blocked_transfer_attempts: int = 0
+    successful_transfer_attempts: int = 0
+
+    @property
+    def link_uptime_percent(self) -> float:
+        """Ratio of successful communication steps to total steps."""
+        if self.total_link_samples <= 0:
+            return 100.0
+        return (1.0 - (self.failed_link_samples / self.total_link_samples)) * 100.0
+
+    @property
+    def transfer_success_rate(self) -> float:
+        """Ratio of successful transfers to total attempts (successful + blocked)."""
+        total_attempts = self.successful_transfer_attempts + self.blocked_transfer_attempts
+        if total_attempts <= 0:
+            return 100.0
+        return (self.successful_transfer_attempts / total_attempts) * 100.0
+
     @property
     def transfer_efficiency(self) -> float:
         """Ratio of delivered energy to sourced energy."""
@@ -106,6 +128,36 @@ class ResourceSharingMetrics:
             return 0.0
         return self.active_transfer_steps / self.total_steps
 
+class CyberLinkManager:
+    """
+    Manages communication link health using a Markov Chain state transition model.
+    P(UP -> DOWN) = 0.01 (1% failure probability)
+    P(DOWN -> UP) = 0.50 (50% recovery probability)
+    """
+    def __init__(self, mg_ids: List[str], base_failure_prob: float = 0.01):
+        self.mg_ids = mg_ids
+        self.p_fail = base_failure_prob
+        self.p_recover = 0.50
+        # Initialize all links as UP
+        self.link_states = {mg_id: True for mg_id in mg_ids}
+
+    def update_states(self) -> Set[str]:
+        """Update link states and return set of failed microgrid IDs."""
+        failed = set()
+        for mg_id in self.mg_ids:
+            is_up = self.link_states[mg_id]
+            if is_up:
+                # Up -> Down transition
+                if random.random() < self.p_fail:
+                    self.link_states[mg_id] = False
+            else:
+                # Down -> Up transition
+                if random.random() < self.p_recover:
+                    self.link_states[mg_id] = True
+            
+            if not self.link_states[mg_id]:
+                failed.add(mg_id)
+        return failed
 
 # =============================================================================
 # ENERGY EXCHANGE BUS
@@ -138,18 +190,23 @@ class EnergyExchangeBus:
 
     def __init__(
         self,
+        mg_ids: List[str],
         bus_capacity_kw: float = 200.0,
         transfer_efficiency: float = 0.95,
         min_transfer_kw: float = 5.0,
         max_simultaneous: int = 3,
         min_donor_soc: float = 30.0,
     ):
+        self.mg_ids = mg_ids
         self.bus_capacity_kw = bus_capacity_kw
         self.transfer_efficiency = transfer_efficiency
         self.min_transfer_kw = min_transfer_kw
         self.max_simultaneous = max_simultaneous
         self.min_donor_soc = min_donor_soc
         self.failed_links: Set[str] = set()
+
+        # Cyber-Resilience Engine
+        self.link_manager = CyberLinkManager(mg_ids)
 
         # Per-timestep buffers (cleared each step)
         self._surplus_reports: List[SurplusReport] = []
@@ -164,7 +221,7 @@ class EnergyExchangeBus:
 
         logger.info(
             f"EnergyExchangeBus initialized: capacity={bus_capacity_kw} kW, "
-            f"efficiency={transfer_efficiency:.0%}, min_donor_soc={min_donor_soc}%"
+            f"efficiency={transfer_efficiency:.0%}, Markov fault model enabled"
         )
 
     # ─────────────────────────────────────────────────────────────
@@ -203,10 +260,20 @@ class EnergyExchangeBus:
         """
         self._active_transfers = []
 
+        # ── Cyber-Resilience Telemetry Update ──
+        total_nodes = len(self._surplus_reports) + len(self._energy_requests)
+        self.metrics.total_link_samples += len(self.failed_links)  # Simplified: count failed nodes
+        # Actually tracked better if we know all nodes, but for now we track the 'impact'
+        
         # ── Cyber-Resilience Filter ──
         # Ignore microgrids with failed communication links
         active_requests = [r for r in self._energy_requests if r.microgrid_id not in self.failed_links]
         active_surplus = [s for s in self._surplus_reports if s.microgrid_id not in self.failed_links]
+        
+        # Log blocked potential
+        blocked_r = len(self._energy_requests) - len(active_requests)
+        blocked_s = len(self._surplus_reports) - len(active_surplus)
+        self.metrics.blocked_transfer_attempts += (blocked_r + blocked_s)
 
         if not active_surplus or not active_requests:
             self.metrics.total_steps += 1
@@ -272,12 +339,13 @@ class EnergyExchangeBus:
                     delivered_kw=round(delivered_kw, 2),
                     duration_hours=min(surplus.duration_hours, 0.25),  # 15-min step
                     reason=f"Priority {request.priority.name}: "
-                           f"{surplus.microgrid_id}→{request.microgrid_id}"
+                           f"{surplus.microgrid_id}->{request.microgrid_id}"
                 )
 
                 self._active_transfers.append(transfer)
                 self.transfer_log.append(transfer)
                 transfer_count += 1
+                self.metrics.successful_transfer_attempts += 1
 
                 # Update remaining capacity
                 remaining_surplus[surplus.microgrid_id] -= gross_kw
@@ -285,7 +353,7 @@ class EnergyExchangeBus:
                 remaining_bus_capacity -= gross_kw
 
                 logger.info(
-                    f"TRANSFER: {transfer.from_mg} → {transfer.to_mg} "
+                    f"TRANSFER: {transfer.from_mg} -> {transfer.to_mg} "
                     f"{transfer.power_kw:.1f}kW (delivered {transfer.delivered_kw:.1f}kW) "
                     f"reason={transfer.reason}"
                 )

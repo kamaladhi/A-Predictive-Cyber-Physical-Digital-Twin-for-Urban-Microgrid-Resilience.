@@ -1,618 +1,468 @@
-# 🏙️ Digital Twin City Microgrid - Comprehensive Resilience Simulation
+# ⚡ A Predictive Cyber-Physical Digital Twin for Urban Microgrid Resilience
 
-[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-green.svg)]()
-
-## 📋 Table of Contents
-
-1. [Project Overview](#project-overview)
-2. [Key Features](#key-features)
-3. [Architecture](#architecture)
-4. [System Requirements](#system-requirements)
-5. [Installation](#installation)
-6. [Quick Start](#quick-start)
-7. [Simulation Scenarios](#simulation-scenarios)
-8. [Results & Metrics](#results--metrics)
-9. [Interactive Dashboard](#interactive-dashboard)
-10. [Technical Details](#technical-details)
-11. [Project Structure](#project-structure)
-12. [Recent Improvements](#recent-improvements)
-13. [Troubleshooting](#troubleshooting)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![Status](https://img.shields.io/badge/status-active_research-orange)
 
 ---
 
-## 🎯 Project Overview
+## 📖 Abstract
 
-This project implements a **comprehensive digital twin simulation** of a city-level microgrid system with 4 heterogeneous microgrids operating under a priority-based coordination policy. The system models realistic grid outages, battery constraints, and critical load protection while achieving **perfect resilience metrics**.
+**A Predictive Cyber-Physical Digital Twin for Urban Microgrid Resilience** is an advanced Python-based simulation, control, and visualization framework that shifts energy management from pure economic dispatch to **priority-aware resilience and disaster survivability**.
 
-### Vision
-Develop a production-ready digital twin for modeling, analyzing, and optimizing urban resilience during grid disruptions using:
-- Extended Kalman Filter state estimation
-- Priority-aware load shedding
-- Predictive control (shadow simulation)
-- IEEE 2030.5 resilience metrics
+The system models a city with **4 heterogeneous microgrids** (Hospital, University, Industrial, Residential) and orchestrates them through a 5-layer Digital Twin architecture. It combines **deep-learning solar forecasting**, an **Extended Kalman Filter (EKF)** for state estimation, a **Rolling-Horizon Model Predictive Controller (MPC)** for optimal dispatch, and an **Energy Exchange Bus** for inter-microgrid power sharing — all connected via an **MQTT-based IoT communication layer** with realistic cyber-physical failure modeling.
 
-### Target Users
-- Power systems engineers
-- Grid operators
-- Researchers in microgrid resilience
-- City resilience planners
+Under disaster scenarios (grid blackouts, power shortages, cyber-attacks), the system dynamically prioritizes critical infrastructure using a **Value of Lost Load (VOLL)** hierarchy, ensuring hospitals remain powered even at the expense of residential comfort.
 
 ---
 
-## ✨ Key Features
+## ✨ Key Innovations (Novelty)
 
-### 🔋 Four Heterogeneous Microgrids
-
-| Microgrid | Type | Priority | Battery | Generator | Critical Load |
-|-----------|------|----------|---------|-----------|--------------|
-| **Hospital** | Medical Facility | CRITICAL | 550 kWh | 200 kW | 320 kW |
-| **University** | Campus | HIGH | 600 kWh | 250 kW | 240 kW |
-| **Industrial** | Manufacturing | MEDIUM | 400 kWh | 150 kW | 220 kW |
-| **Residential** | Community | LOW | 450 kWh | 300 kW | 100 kW |
-
-### 🎛️ Advanced Control Systems
-
-- **City-Level EMS**: Centralized energy management with priority-based coordination
-- **Microgrid-Level EMS**: Local control with critical load protection
-- **State Estimation**: Extended Kalman Filter for robust state tracking
-- **Predictive Control**: Shadow simulator for what-if analysis
-- **Load Shedding**: Strict tier-by-tier allocation (CRITICAL → HIGH → MEDIUM → LOW)
-
-### 📊 Perfect Resilience Metrics
-
-| Metric | Target | Achieved | Status |
-|--------|--------|----------|--------|
-| City Survivability Index (CSI) | > 0.90 | **1.0000** | ✅ |
-| Critical Load Preservation (CLPR) | > 95% | **100.0%** | ✅ |
-| Priority Violations | = 0 | **0** | ✅ |
-| State Confidence | > 0.96 | **0.964** | ✅ |
-| Unserved Energy | ≤ 0.5 kWh | **0.0 kWh** | ✅ |
-
-### 🖥️ Interactive Streamlit Dashboard
-
-- Real-time metric visualization
-- Scenario comparison (3 grid outage scenarios)
-- Per-microgrid performance tracking
-- Comparative analysis across all 4 microgrids
-- Interactive Plotly charts with drill-down capability
+| # | Innovation | Description |
+|---|---|---|
+| 1 | **Priority-Aware MPC (VOLL Hierarchy)** | LP-based optimizer enforces strict VOLL penalties: Hospital = $10M/kWh, University = $1M/kWh, Industrial = $100K/kWh, Residential = $1K/kWh |
+| 2 | **CNN-BiLSTM Solar Forecasting with Attention** | Deep learning neural network predicts Solar Clearness Index ($K_t$) with probabilistic uncertainty via Quantile Regression |
+| 3 | **Extended Kalman Filter (4-State EKF)** | Real-time state estimation with anomaly detection for cyber-attack resilience |
+| 4 | **Adaptive Data Fusion Engine** | Weighted sensor fusion (NILM + raw sensors + forecasts) with EKF-confidence-adaptive weights |
+| 5 | **Shadow Simulator (Monte Carlo)** | Parallel what-if simulations for predictive horizon and proactive recommendations |
+| 6 | **Markov Cyber-Link Failure Model** | Realistic MQTT network failure simulation with P(UP→DOWN) = 1%, P(DOWN→UP) = 50% |
+| 7 | **Live IEEE 1366 Reliability Indices** | SAIDI, SAIFI, CAIDI, LOLP, ASAI computed per simulation step — not just post-hoc |
+| 8 | **RESTful API Layer (FastAPI)** | SCADA-interoperable endpoints for programmatic Digital Twin interaction |
 
 ---
 
-## 🏗️ Architecture
-
-### System Architecture Diagram
+## 🏗️ System Architecture — 5 Layers
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Digital Twin Manager                         │
-│  (Orchestration, Scenario Execution, Metrics Calculation)      │
-└──────────────────────────────┬──────────────────────────────────┘
-         ↓
-┌────────────────────────────────────────────────────────────────────┐
-│                   City-Level EMS (Coordinator)                     │
-│  • Priority-aware load shedding                                   │
-│  • Shadow simulation for predictive control                       │
-│  • City survivability optimization                                │
-└────────┬──────────────┬──────────────┬──────────────┬──────────────┘
-         ↓              ↓              ↓              ↓
-    ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
-    │  Hospital  │ │ University │ │ Industrial │ │Residential │
-    │    EMS     │ │    EMS     │ │    EMS     │ │    EMS     │
-    └────┬───────┘ └────┬───────┘ └────┬───────┘ └────┬───────┘
-         ↓              ↓              ↓              ↓
-    ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
-    │  Hospital  │ │ University │ │ Industrial │ │Residential │
-    │ Simulator  │ │ Simulator  │ │ Simulator  │ │ Simulator  │
-    └────┬───────┘ └────┬───────┘ └────┬───────┘ └────┬───────┘
-         ↓              ↓              ↓              ↓
-    ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
-    │  State     │ │  State     │ │  State     │ │  State     │
-    │ Estimator  │ │ Estimator  │ │ Estimator  │ │ Estimator  │
-    └────────────┘ └────────────┘ └────────────┘ └────────────┘
-         ↓
-    ┌─────────────────────────────────────────┐
-    │  Resilience Metrics & Risk Assessment   │
-    │  (CSI, CLPR, Priority Violations, etc)  │
-    └─────────────────────────────────────────┘
-```
-
-### Key Components
-
-**1. Digital Twin Manager** (`DigitalTwin/digital_twin_manager.py`)
-- Scenario orchestration
-- State estimation aggregation
-- Resilience metrics calculation
-
-**2. City EMS** (`EMS/city_ems.py`)
-- Centralized coordination
-- Priority-based load shedding trigger
-- City survivability optimization
-
-**3. State Estimator** (`DigitalTwin/state_estimator.py`)
-- Extended Kalman Filter (EKF)
-- Innovation gating & anomaly detection
-- Measurement fusion
-
-**4. Individual Microgrids**
-- Hospital: `Microgrid/Hospital/`
-- University: `Microgrid/university_microgrid/`
-- Industrial: `Microgrid/Industry_microgrid/`
-- Residential: `Microgrid/residence/`
-
----
-
-## 💻 System Requirements
-
-```
-Operating System: Windows 10/11 or Linux
-Python: 3.12+
-RAM: 4GB minimum (8GB recommended)
-Disk Space: 500MB for code + results
-GPU: Not required
-```
-
-### Dependencies
-
-```
-pandas>=1.5.0         # Data manipulation
-numpy>=1.24.0         # Numerical computing
-scipy>=1.10.0         # Scientific computing
-plotly>=5.14.0        # Interactive visualization
-streamlit>=1.28.0     # Dashboard framework
+┌──────────────────────────────────────────────────────────────────────┐
+│  LAYER 5: VISUALIZATION & API                                       │
+│  ┌─────────────────────┐ ┌──────────────────┐ ┌──────────────────┐ │
+│  │ Streamlit Dashboard │ │ FastAPI REST API  │ │  MQTT Broker     │ │
+│  │ (4 Persona Tabs)    │ │ /api/v1/state    │ │  (Mosquitto)     │ │
+│  └─────────────────────┘ └──────────────────┘ └──────────────────┘ │
+├──────────────────────────────────────────────────────────────────────┤
+│  LAYER 4: DIGITAL TWIN                                              │
+│  ┌───────────────┐ ┌──────────────────┐ ┌───────────────────────┐  │
+│  │ EKF State     │ │ Shadow Simulator │ │ Data Fusion Engine    │  │
+│  │ Estimator     │ │ (Monte Carlo)    │ │ (Adaptive Weights)    │  │
+│  └───────────────┘ └──────────────────┘ └───────────────────────┘  │
+├──────────────────────────────────────────────────────────────────────┤
+│  LAYER 3: CONTROL (CITY-LEVEL EMS)                                  │
+│  ┌──────────────┐ ┌──────────────────┐ ┌────────────────────────┐  │
+│  │ MPC Optimizer │ │ Energy Exchange  │ │ Demand Response        │  │
+│  │ (LP / PuLP)  │ │ Bus (P2P)        │ │ Coordinator            │  │
+│  └──────────────┘ └──────────────────┘ └────────────────────────┘  │
+├──────────────────────────────────────────────────────────────────────┤
+│  LAYER 2: AI FORECASTING                                            │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ CNN-BiLSTM with Temporal Attention (Solar Clearness Index Kt) │ │
+│  │ + Quantile Regression (P10, P50, P90) + Physics-Based PV Model│ │
+│  └────────────────────────────────────────────────────────────────┘ │
+├──────────────────────────────────────────────────────────────────────┤
+│  LAYER 1: PHYSICAL SIMULATION                                       │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────────┐  │
+│  │🏥 Hospital │ │🎓 University│ │🏭 Industrial│ │🏠 Residential │  │
+│  │ CRITICAL   │ │ HIGH       │ │ MEDIUM     │ │ LOW            │  │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────────┘  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📦 Installation
+## 🔬 Algorithms & Techniques — Detailed Reference
 
-### 1. Clone Repository
+### 1. Extended Kalman Filter (EKF) — State Estimation
 
+**Module:** `src/digital_twin/state_estimator.py`
+
+The EKF maintains robust state estimates under noisy sensor conditions.
+
+| Parameter | Value |
+|---|---|
+| **State Vector** | `[SoC, battery_power, generator_power, load]` (4 states) |
+| **Measurement Vector** | `[measured_SoC, measured_power_flow, measured_load]` (3 measurements) |
+| **Process Noise (Q)** | Diagonal: `[0.001, 0.5, 0.5, 1.0]` |
+| **Measurement Noise (R)** | Diagonal: `[0.01, 2.0, 5.0]` |
+| **Confidence Mapping** | `confidence = exp(-variance / σ_ref)` |
+| **Anomaly Detection** | Innovation-based: flags when `|innovation| > 3σ` |
+| **Time-to-Exhaustion** | `TTE = (SoC × capacity) / net_load` predicted forward |
+
+**Key Classes:**
+- `MicrogridStateEstimator` — Per-microgrid EKF with predict/update cycle
+- `CityStateEstimator` — Aggregates all MG estimators, computes city-level confidence
+- `StateEstimate` — Dataclass with value, variance, confidence, 95% CI
+
+---
+
+### 2. Rolling-Horizon MPC (Model Predictive Control)
+
+**Module:** `src/ems/predictive_optimizer.py`
+
+The MPC solves a Linear Program (LP) at each timestep to optimally dispatch generators, batteries, and grid imports.
+
+| Parameter | Value |
+|---|---|
+| **Solver** | PuLP (CBC backend) |
+| **Horizon** | 8 steps = 2 hours (configurable: 4h, 8h) |
+| **Timestep** | 15 minutes (DT_MINUTES = 15) |
+| **Objective** | Minimize: `Σ (fuel_cost + grid_cost + VOLL × shed)` |
+| **VOLL Hierarchy** | Hospital: $10M/kWh, University: $1M/kWh, Industrial: $100K/kWh, Residential: $1K/kWh |
+
+**Decision Variables (per MG, per step):**
+- `gen_kw` — Generator output (0 to capacity)
+- `batt_kw` — Battery charge/discharge (-capacity to +capacity)
+- `grid_kw` — Grid import (0 when islanded)
+- `shed_kw` — Load shed (0 to load, penalized by VOLL)
+
+**Constraints:**
+- Power balance: `PV + gen + grid + batt_discharge = load + batt_charge + shed`
+- SOC dynamics: `SoC(t+1) = SoC(t) + η_charge × batt × Δt / capacity`
+- Generator ramp limits
+- Battery SOC bounds: `[5%, 95%]`
+- Grid availability (forced to 0 during outage)
+
+**Telemetry Published:** `pv_forecast_kw`, `fuel_remaining_liters`, `renewable_pct`, `grid_cost_step_rs`, `solve_time_ms`
+
+---
+
+### 3. Energy Exchange Bus (Inter-Microgrid P2P Sharing)
+
+**Module:** `src/ems/resource_sharing.py`
+
+A virtual energy trading bus that matches surplus generators with deficit consumers using a priority-weighted algorithm.
+
+| Parameter | Value |
+|---|---|
+| **Bus Capacity** | 200 kW |
+| **Transfer Efficiency** | 95% (5% loss per transfer) |
+| **Min Transfer** | 5 kW |
+| **Max Simultaneous** | 3 transfers per step |
+| **Min Donor SOC** | 30% (donors below this can't export) |
+
+**Algorithm:**
+1. Collect `SurplusReport` from MGs with excess generation
+2. Collect `EnergyRequest` from MGs with deficit
+3. Sort requests by priority (CRITICAL > HIGH > MEDIUM > LOW), then by deficit magnitude
+4. Match surplus to requests, respecting bus capacity and link health
+5. Apply transfer efficiency loss
+6. Log all transfers for audit
+
+**Cyber-Link Failure Model (`CyberLinkManager`):**
+- Uses a 2-state Markov chain per communication link
+- P(UP → DOWN) = 1% per step
+- P(DOWN → UP) = 50% per step
+- Failed links block energy transfers to/from that MG
+
+---
+
+### 4. Demand Response (DR) Coordinator
+
+**Module:** `src/ems/demand_response.py`
+
+A comprehensive DR framework coordinating voluntary and mandatory load reduction across all microgrids.
+
+**DR Event Types:**
+| Type | Description |
+|---|---|
+| `ECONOMIC` | Price-signal based voluntary reduction |
+| `EMERGENCY` | Mandatory reduction during grid emergencies |
+| `PEAK_SHAVING` | Reduce system peak demand |
+| `ANCILLARY_SERVICE` | Grid support services |
+| `RENEWABLE_CURTAILMENT` | Reduce load when renewables are scarce |
+
+**Priority Levels:** VOLUNTARY (1) → RECOMMENDED (2) → MANDATORY (3) → EMERGENCY (4)
+
+**Incentive/Penalty System:**
+- Incentive rate (₹/kWh) for participation
+- Performance bonus for exceeding targets
+- Penalty for under-delivery
+- Participation tracking with achievement percentages
+
+---
+
+### 5. CNN-BiLSTM Solar Forecasting with Temporal Attention
+
+**Module:** `src/solar/solar_forecasting.py`
+
+A deep learning model for multi-horizon solar generation prediction.
+
+| Component | Detail |
+|---|---|
+| **Input** | Historical NSRDB data (GHI, DNI, DHI, temperature, humidity, wind) |
+| **CNN Layers** | 1D convolutional feature extraction for local patterns |
+| **BiLSTM** | Bidirectional LSTM for temporal sequence modeling |
+| **Attention** | Temporal attention mechanism for focusing on critical forecast windows |
+| **Output** | Solar Clearness Index (Kt) prediction |
+| **Quantile Regression** | Generates P10, P50, P90 bounds for uncertainty quantification |
+| **Horizons** | 1h, 6h, 24h multi-horizon forecasts |
+| **Fallback** | Statistical baseline when LSTM model unavailable |
+
+**Data Pipeline (`src/solar/solar_preprocessing.py`):**
+- Loads NSRDB CSV files (26,280 rows across 2018–2020)
+- Cleans missing values, computes Kt from GHI/extraterrestrial irradiance
+- Splits into train/val/test with proper temporal ordering
+
+**Physics-Based PV Model (`src/solar/pv_power_model.py`):**
+- Converts Kt predictions to actual PV power output (kW)
+- Accounts for panel tilt, azimuth, temperature derating, inverter efficiency
+
+---
+
+### 6. Data Fusion Engine
+
+**Module:** `src/digital_twin/data_fusion_engine.py`
+
+Combines multiple data sources into a unified "Virtual Twin" state.
+
+| Feature | Description |
+|---|---|
+| **Temporal Sync** | Validates data freshness across NILM, forecasts, measurements (configurable staleness window) |
+| **Adaptive Weights** | NILM / raw sensor / forecast weights shift based on EKF confidence |
+| **Low Confidence Mode** | When EKF confidence < 50%, trusts NILM more (weight shifts from sensors) |
+| **Audit Logging** | Records fusion events with source weights for post-hoc analysis |
+
+**Data Sources:**
+1. Raw sensor measurements (SOC, load, PV, generator)
+2. NILM (Non-Intrusive Load Monitoring) disaggregated readings
+3. AI forecast outputs (solar, load predictions)
+
+---
+
+### 7. Shadow Simulator (Predictive Digital Twin)
+
+**Module:** `src/digital_twin/shadow_simulator.py`
+
+Runs accelerated "what-if" simulations to predict system behavior.
+
+| Parameter | Value |
+|---|---|
+| **Acceleration Factor** | 10x faster than real-time |
+| **Monte Carlo Samples** | 10 per scenario (configurable) |
+| **Scenarios** | Grid failure, generator trip, solar variability, load spike |
+
+**Lightweight Prediction (Inline in `run_experiment.py`):**
+- Runs every 12 steps (~3 simulation hours)
+- Computes per-microgrid: time-to-battery-exhaustion, fuel remaining hours
+- Risk assessment: LOW / ELEVATED / CRITICAL
+- Publishes proactive recommendations via MQTT `city/predictions`
+
+---
+
+### 8. Resilience Metrics — IEEE 1366-2012
+
+**Module:** `src/digital_twin/resilience_metrics.py`
+
+| Index | Formula | Description |
+|---|---|---|
+| **SAIDI** | `Σ(interruption_duration × customers) / total_customers` | System Avg Interruption Duration |
+| **SAIFI** | `Σ(interruptions × customers) / total_customers` | System Avg Interruption Frequency |
+| **CAIDI** | `SAIDI / SAIFI` | Customer Avg Interruption Duration |
+| **LOLP** | `shed_steps / total_steps` | Loss of Load Probability |
+| **ASAI** | `1 - (Σ unserved_hours / Σ total_hours)` | Avg Service Availability Index |
+| **EENS** | `Σ (shed_kW × Δt)` | Expected Energy Not Served (kWh) |
+
+These are computed **per simulation step** and broadcast live via MQTT.
+
+---
+
+### 9. Cyber-Physical Security — Attack Injection & Detection
+
+**Module:** `scripts/run_experiment.py` (integrated)
+
+| Feature | Description |
+|---|---|
+| **Attack Injection** | Corrupts sensor readings: SOC biased +15–30%, load scaled 0.3–0.6× |
+| **EKF Anomaly Detection** | Innovation-based detection: flags when `|innovation| > 3σ` |
+| **MQTT Alert Publishing** | Detected anomalies published to `city/alerts` |
+| **Dashboard Indicator** | "Cyber Resilience" panel shows attack status + anomaly count |
+| **Live Toggle** | Inject/stop attacks via dashboard radio selector or MQTT override |
+
+---
+
+## 🖥️ Dashboard — 4-Tab Persona-Based Command Center
+
+**Module:** `dashboard/app.py`
+
+| Tab | Persona | Key Visualizations |
+|---|---|---|
+| 🌍 **Macro City View** | City Mayor | City Survival Index, EKF confidence, supply donut, solar forecast vs actual, renewable gauge, fuel bars, cost ticker |
+| 🤝 **Energy Market & DR** | Exchange Operator | Power balance metrics, energy mix stacked bar, self-sufficiency gauge, Sankey diagram, DR shedding table |
+| 🧠 **Digital Twin AI** | Data Scientist | EKF gauge, time-to-exhaustion, EKF overlay, solver sparkline, IEEE 1366 panel, cyber resilience indicator |
+| 🔋 **Local Microgrids** | Grid Operator | 2×2 grid: all 4 MGs with load/PV/SOC/gen metrics, Load vs Gen charts, SOC timelines, status indicators |
+
+**Sidebar Scenario Control (Live Switching via MQTT):**
+- 🟢 Normal (Sunny Day)
+- 🔴 Grid Blackout
+- 🟠 Power Shortage
+- 🛡️ Cyber Attack
+- 💀 Blackout + Cyber Attack
+
+---
+
+## 🌐 REST API (FastAPI)
+
+**Module:** `src/api_server.py`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/v1/state` | Current microgrid snapshots |
+| `GET` | `/api/v1/metrics` | IEEE 1366 indices + EKF confidence + solver stats |
+| `GET` | `/api/v1/alerts` | System alerts (anomalies, threshold violations) |
+| `POST` | `/api/v1/scenario` | Inject disaster scenario (`outage`, `shortage`, `cyber_attack`) |
+| `GET` | `/api/v1/health` | Service health check |
+
+**Start the API:**
 ```bash
-git clone https://github.com/kamaladhi/Digital-twin-microgrid.git
-cd Digital-twin-microgrid
-```
-
-### 2. Create Python Virtual Environment (Recommended)
-
-**Windows:**
-```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-```
-
-**Linux/Mac:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install pandas numpy scipy plotly streamlit
-```
-
-### 4. Verify Installation
-
-```bash
-python -c "import pandas, numpy, scipy, plotly, streamlit; print('✅ All dependencies installed')"
-```
-
----
-
-## 🚀 Quick Start
-
-### 1. Run the Simulation
-
-```bash
-python run_digital_twin_city_simulation.py
-```
-
-**Expected Output:**
-```
-================================================================================
-DIGITAL TWIN CITY SIMULATION - STARTING
-================================================================================
-✅ Digital Twin Manager initialized successfully
-📊 Registered Microgrids: HOSPITAL, UNIVERSITY, INDUSTRIAL, RESIDENTIAL
-
-Running 3 scenarios...
-✅ normal_operation completed
-✅ outage_6h completed
-✅ outage_12h completed
-
-SCENARIO COMPARISON SUMMARY:
-📊 NORMAL_OPERATION: CSI=1.0000, CLPR=100%, Violations=0
-📊 OUTAGE_6H: CSI=1.0000, CLPR=100%, Violations=0
-📊 OUTAGE_12H: CSI=1.0000, CLPR=100%, Violations=0
-
-✅ SIMULATION COMPLETED SUCCESSFULLY
-```
-
-### 2. Launch Interactive Dashboard
-
-```bash
-streamlit run Visualization/streamlit_dashboard.py
-```
-
-**Expected Output:**
-```
-Local URL: http://localhost:8501
-Network URL: http://192.168.x.x:8501
-```
-
-### 3. Access Dashboard
-
-Open your browser and navigate to: **`http://localhost:8501`**
-
----
-
-## 📊 Simulation Scenarios
-
-### Scenario 1: Normal Operation (8 hours)
-
-**Grid Condition:** Grid always available
-**Expected Outcome:** All critical loads served, optimal energy management
-
-**Key Metrics:**
-- CSI: 1.0 (Perfect)
-- CLPR: 100% (All critical loads served)
-- Unserved Energy: 0 kWh
-- Priority Violations: 0
-
-### Scenario 2: 6-Hour Grid Outage
-
-**Grid Condition:** Grid outage from 00:00 to 06:00
-**Expected Outcome:** Critical loads maintained, non-critical loads partially served
-
-**Key Metrics:**
-- CSI: 1.0 (Perfect recovery)
-- CLPR: 100% (Critical loads never lost)
-- Recovery Time: 6.0 hours
-- Priority Violations: 0
-
-### Scenario 3: 12-Hour Extended Outage
-
-**Grid Condition:** Grid outage from 00:00 to 12:00
-**Expected Outcome:** Critical infrastructure maintained through extended outage
-
-**Key Metrics:**
-- CSI: 1.0 (Excellent sustained operation)
-- CLPR: 100% (Critical loads protected throughout)
-- Recovery Time: 6.0 hours
-- Priority Violations: 0
-
----
-
-## 📈 Results & Metrics
-
-### Resilience Metrics (IEEE 2030.5 Standard)
-
-#### 1. City Survivability Index (CSI)
-```
-CSI = (Total Energy Served) / (Total Energy Demanded)
-Target: > 0.90 | Achieved: 1.0000 ✅
-```
-
-#### 2. Critical Load Preservation Ratio (CLPR)
-```
-CLPR = (Critical Energy Served) / (Critical Energy Demanded)
-Target: > 95% | Achieved: 100.0% ✅
-```
-
-#### 3. Priority Compliance
-```
-Violations = Count where lower-priority MG sheds while higher-priority doesn't
-Target: 0 | Achieved: 0 ✅
-```
-
-#### 4. State Confidence Score
-```
-Confidence = Mean confidence of all state estimators
-Target: > 0.96 | Achieved: 0.964 ✅
-```
-
-### Per-Microgrid Performance
-
-#### Hospital (CRITICAL Priority)
-```
-Average Load: 580 kW | Peak: 680 kW
-Battery Capacity: 550 kWh
-Critical Load: 320 kW (always protected)
-CSI: 1.0000 | CLPR: 100.0%
-```
-
-#### University (HIGH Priority)
-```
-Average Load: 420 kW | Peak: 600 kW
-Battery Capacity: 600 kWh
-Critical Load: 240 kW (always protected)
-CSI: 1.0000 | CLPR: 100.0%
-```
-
-#### Industrial (MEDIUM Priority)
-```
-Average Load: 350 kW | Peak: 450 kW
-Battery Capacity: 400 kWh
-Critical Load: 220 kW (always protected)
-CSI: 1.0000 | CLPR: 100.0%
-```
-
-#### Residential (LOW Priority)
-```
-Average Load: 380 kW | Peak: 650 kW
-Battery Capacity: 450 kWh
-Critical Load: 100 kW (safety only)
-CSI: 1.0000 | CLPR: 100.0%
-```
-
----
-
-## 🖥️ Interactive Dashboard
-
-### Dashboard Sections
-
-#### 1. Scenario Selection (Sidebar)
-- Normal Operation (baseline)
-- 6-Hour Grid Outage
-- 12-Hour Extended Outage
-
-#### 2. Resilience Metrics Summary
-- City Survivability Index
-- Critical Load Preservation Ratio
-- Priority Violations
-- State Confidence
-
-#### 3. City-Level Energy Metrics
-- Total Unserved Energy
-- Priority Violation Events
-- Scenario Duration
-
-#### 4. Metrics Over Time
-- CSI Trend
-- Unserved Energy Evolution
-
-#### 5. Individual Microgrid Performance
-- Battery SoC trajectory
-- Power generation vs load
-- Load shedding profile
-
-#### 🚀 Quick Start (IEMS Showcase)
-To run the full comparative experiment (Rule-Based vs MPC vs MPC+DR) and view the results summary:
-
-```powershell
-python run_demonstration.py
-```
-
-### 📊 Comparative Analysis
-To run specific experiments manually:
-- **Predictive MPC (IEMS)**: `python run_predictive_experiment.py --trials 10 --days 7`
-- **Legacy LP Optimization**: `python run_optimization_experiment.py`
-- **Rule-Based Baseline**: `python run_outage_experiment.py`
-
-#### 6. Comparative Analysis
-- Side-by-side comparison of all 4 microgrids
-- Multiple metric options
-- Interactive Plotly visualization
-
-### Using the Dashboard
-
-```
-1. Run: streamlit run Visualization/streamlit_dashboard.py
-2. Open: http://localhost:8501
-3. Sidebar: Select scenario
-4. Explore: Click through sections
-5. Compare: Analyze across microgrids
-```
-
----
-
-## 🔧 Technical Details
-
-### Extended Kalman Filter (State Estimation)
-
-**State Vector:**
-```
-x = [SoC %, battery_power, generator_power, load]
-```
-
-**EKF Parameters:**
-```python
-Q = diag([0.2, 3.0, 3.0, 1.0])  # Process noise
-R = diag([15.0, 30.0, 50.0])     # Measurement noise (tuned)
-```
-
-**Adaptive Innovation Gating:**
-```python
-# Only warn if >3 sigma from recent mean
-if (innovation - recent_mean) > 3 * recent_std:
-    log_warning()
-```
-
-### Priority Shedding Algorithm
-
-```
-1. Monitor minimum SOC of CRITICAL/HIGH priority MGs
-2. If min_soc < threshold, trigger shedding
-3. Shed tier-by-tier: LOW → MEDIUM → HIGH → CRITICAL
-4. Never skip tiers, allocate proportionally within tier
-5. Stop when power balance achieved or all non-critical shed
+pip install fastapi uvicorn
+uvicorn src.api_server:app --port 8000
 ```
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 Digital-twin-microgrid/
-├── README.md                           # This file
-├── run_digital_twin_city_simulation.py # Main simulation runner
-├── test_ems_integration.py             # Integration tests
-│
-├── DigitalTwin/
-│   ├── digital_twin_manager.py         # Orchestration
-│   ├── state_estimator.py              # EKF state estimation
-│   ├── resilience_metrics.py           # Metric calculation
-│   ├── scenario_engine.py              # Scenario execution
-│   ├── shadow_simulator.py             # Predictive control
-│   └── ...
-│
-├── EMS/
-│   ├── city_ems.py                     # City-level coordinator
-│   ├── hospital_ems.py                 # Hospital EMS
-│   ├── university_ems.py               # University EMS
-│   ├── industry_ems.py                 # Industrial EMS
-│   ├── residence_ems.py                # Residential EMS
-│   └── ...
-│
-├── Microgrid/
-│   ├── Hospital/                       # Hospital microgrid
-│   ├── university_microgrid/           # University microgrid
-│   ├── Industry_microgrid/             # Industrial microgrid
-│   └── residence/                      # Residential microgrid
-│
-├── Visualization/
-│   └── streamlit_dashboard.py          # Interactive dashboard
-│
-└── city_simulation_results/            # Simulation outputs
-    ├── normal_operation/
-    ├── outage_6h/
-    └── outage_12h/
+├── .streamlit/
+│   └── config.toml                # Streamlit theme configuration
+├── dashboard/
+│   └── app.py                     # 4-tab Streamlit dashboard (1400+ lines)
+├── scripts/
+│   ├── run_experiment.py          # Main simulation loop & statistical experiments
+│   └── run_live_demo.py           # Real-time orchestrator (MQTT + Dashboard + Sim)
+├── src/
+│   ├── api_server.py              # FastAPI REST API layer
+│   ├── digital_twin/
+│   │   ├── state_estimator.py     # EKF (MicrogridStateEstimator, CityStateEstimator)
+│   │   ├── shadow_simulator.py    # Monte Carlo predictive engine
+│   │   ├── data_fusion_engine.py  # Adaptive weighted sensor fusion
+│   │   ├── digital_twin_manager.py# Triple-state DT manager (Physical/Virtual/Predictive)
+│   │   ├── resilience_metrics.py  # IEEE 1366 reliability index computation
+│   │   ├── scenario_engine.py     # What-if scenario definitions
+│   │   ├── outage_event_model.py  # Outage event data structures
+│   │   └── twin_state.py          # TwinState dataclass
+│   ├── ems/
+│   │   ├── city_ems.py            # City-Level EMS coordinator (60K+ lines)
+│   │   ├── predictive_optimizer.py# MPC optimizer (Rolling-horizon LP via PuLP)
+│   │   ├── demand_response.py     # DR coordinator (events, incentives, tracking)
+│   │   ├── resource_sharing.py    # Energy Exchange Bus + Markov cyber-link model
+│   │   ├── mqtt_manager.py        # MQTT publisher/subscriber for IoT data
+│   │   ├── hospital_ems.py        # Hospital-specific local EMS
+│   │   ├── university_ems.py      # University-specific local EMS
+│   │   ├── industry_ems.py        # Industrial-specific local EMS
+│   │   ├── residence_ems.py       # Residential-specific local EMS
+│   │   ├── ems_factory.py         # Factory pattern for EMS instantiation
+│   │   ├── ems_decision_logger.py # Structured logging for EMS decisions
+│   │   ├── common.py              # Shared enums (Priority, Policy, Mode)
+│   │   └── city_integration.py    # Cross-MG coordination logic
+│   ├── microgrid/
+│   │   ├── Hospital/              # Hospital MG physics + parameters
+│   │   ├── university_microgrid/  # University MG physics + parameters
+│   │   ├── Industry_microgrid/    # Industrial MG physics + parameters
+│   │   └── residence/             # Residential MG physics + parameters
+│   ├── solar/
+│   │   ├── solar_forecasting.py   # CNN-BiLSTM with Attention + Quantile Regression
+│   │   ├── solar_preprocessing.py # NSRDB data loader & feature engineering
+│   │   ├── pv_power_model.py      # Physics-based PV power conversion
+│   │   ├── physics_utils.py       # Solar geometry & irradiance calculations
+│   │   └── validate_solar_integration.py
+│   ├── utils/                     # Helper utilities
+│   └── visualization/             # Static chart generation & PDF reports
+├── data/                          # Raw NSRDB solar data & load profiles
+└── results/                       # Generated plots, logs, CSV/JSON outputs
 ```
 
 ---
 
-## 🚀 Recent Improvements (Production Release v1.0)
+## ⚙️ Installation
 
-### 1. State Estimator Tuning ✅
-- Increased measurement noise covariance R
-- Implemented adaptive innovation gating
-- Eliminated spurious warnings
-- Result: Accurate state tracking without false alarms
+### Prerequisites
+- Python 3.10+
+- Mosquitto MQTT Broker (for live demo mode)
 
-### 2. Priority Violation Resolution ✅
-- Fixed university load profile inconsistency
-- Refactored city EMS shedding logic
-- Implemented strict tier-by-tier allocation
-- Result: Zero violations across all scenarios (60→0, 120→0, 180→0)
-The successful completion of these trials confirms the stability and scalability of the Digital Twin framework for city-level coordination.
+### Setup
 
-> [!NOTE]
-> **Showcase Command**: You can run the entire suite at once using the master orchestrator:
-> `python run_demonstration.py`
-
----
-### 3. University EMS Refactoring ✅
-- Modified to prevent autonomous critical shedding
-- Power deficit-based shedding only
-- Trust city-level coordination
-- Result: Perfect critical load protection
-
-### 4. Interactive Dashboard ✅
-- Created professional Streamlit dashboard
-- Real-time metric visualization
-- Comparative analysis tools
-- Result: Easy-to-use analysis platform
-
-### 5. Validation Complete ✅
-- All 3 scenarios execute successfully
-- Perfect metrics achieved: CSI=1.0, CLPR=100%, Violations=0
-- State confidence: 0.964
-- Result: Production-ready system
-
----
-
-## 🐛 Troubleshooting
-
-### Dashboard Won't Start
 ```bash
-pip install --upgrade streamlit plotly pandas
-streamlit cache clear
+# Clone
+git clone https://github.com/your-username/Digital-twin-microgrid.git
+cd Digital-twin-microgrid
+
+# Virtual environment
+python -m venv venv
+.\venv\Scripts\activate   # Windows
+# source venv/bin/activate  # Linux/Mac
+
+# Install dependencies
+pip install numpy pandas scipy torch pvlib plotly streamlit
+pip install paho-mqtt pulp fastapi uvicorn streamlit-autorefresh
 ```
 
-### Simulation Shows No Output
+---
+
+## 🚀 Usage
+
+### 1. Live Interactive Demo (Recommended)
+Launch the full stack: MQTT Broker → Streamlit Dashboard → Real-Time Simulation.
+
 ```bash
-mkdir -p city_simulation_results
-python run_digital_twin_city_simulation.py
+python scripts/run_live_demo.py
 ```
+- Dashboard opens at **http://localhost:8501**
+- Use the **sidebar radio buttons** to switch scenarios live (Normal → Blackout → Shortage → Cyber Attack)
+- No restart needed — scenarios change in real-time via MQTT
 
-### State Estimator Warnings
-**Status:** Normal - Adaptive gating functioning correctly
-**Action:** None required (warnings suppressed)
+### 2. Scenario-Specific Demo
 
-### Git Push Issues
 ```bash
-ssh-keygen -t rsa -b 4096
-ssh -T git@github.com
+python scripts/run_live_demo.py --outage     # Start with forced blackout
+python scripts/run_live_demo.py --shortage   # Start with power shortage
+```
+
+### 3. Headless Statistical Experiment
+Run full 30-trial experiments for paper results:
+
+```bash
+python scripts/run_experiment.py --trials 30 --days 30
+python scripts/run_experiment.py --trials 30 --days 30 --config MPC+DR-Optimized
+```
+
+### 4. REST API Server
+
+```bash
+uvicorn src.api_server:app --port 8000
+# Visit http://localhost:8000/docs for Swagger UI
 ```
 
 ---
 
-## 📊 Performance Summary
+## 📊 Evaluation Metrics
 
-| Component | Status | Performance |
-|-----------|--------|-------------|
-| Simulation Speed | ✅ | ~2 minutes for 3 scenarios |
-| Memory Usage | ✅ | <500MB for all 3 scenarios |
-| State Estimation | ✅ | 0.964 confidence (excellent) |
-| Metrics Accuracy | ✅ | Perfect (CSI=1.0, CLPR=100%) |
-| Dashboard Responsiveness | ✅ | Sub-second interactions |
+The system automatically computes and publishes:
 
----
+**IEEE 1366-2012 Reliability Indices:**
+- ASAI (Average Service Availability Index)
+- SAIDI (System Average Interruption Duration Index)
+- SAIFI (System Average Interruption Frequency Index)
+- CAIDI (Customer Average Interruption Duration Index)
+- EENS (Expected Energy Not Served)
+- LOLP (Loss of Load Probability)
 
-## 🔮 Future Enhancements
-
-### Short-term
-- [ ] Real-time SCADA data interface
-- [ ] Weather forecasting integration
-- [ ] Unit tests for all modules
-- [ ] REST API endpoints
-
-### Medium-term
-- [ ] Machine learning predictive control
-- [ ] Multi-objective optimization
-- [ ] Advanced battery degradation modeling
-- [ ] Distributed renewable generation
-
-### Long-term
-- [ ] City-scale simulation (100+ microgrids)
-- [ ] Real-time hardware-in-loop
-- [ ] AI-driven autonomous control
-- [ ] Integration with smart city platforms
+**Statistical Validation:**
+- Paired t-tests (Rule-Based vs MPC)
+- Wilcoxon signed-rank tests (non-parametric robustness)
+- Cohen's d effect size with pooled SD
+- Bonferroni correction for multiple comparisons
 
 ---
 
-## ✅ Project Completion Status
+## 📚 Research Reference
 
-- [x] Core simulation engine
-- [x] All 4 microgrids validated
-- [x] State estimation (EKF)
-- [x] Priority-based load shedding
-- [x] Perfect resilience metrics
-- [x] Zero priority violations
-- [x] Interactive dashboard
-- [x] Comprehensive testing
-- [x] Documentation complete
-- [x] Production ready
+> **Placeholder for Citation:**
+> [Author Names]. "A Predictive Cyber-Physical Digital Twin for Urban Microgrid Resilience." *Upcoming Thesis / Publication*, 2026.
 
 ---
 
-## 📞 Support
+## 📜 License
 
-For issues, questions, or contributions:
-1. Check the Troubleshooting section
-2. Review code comments and documentation
-3. Open an issue on GitHub
-4. Submit a pull request with improvements
-
----
-
-**Version:** 1.0.0 Production Release  
-**Last Updated:** January 28, 2026  
-**Status:** ✅ Complete & Production Ready
-
----
-
-*Built with ❤️ for urban resilience and microgrid coordination*
+MIT License — See [LICENSE](LICENSE) for details.

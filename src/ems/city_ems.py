@@ -179,14 +179,16 @@ class CityEMS:
         
         # Initialize Resource Sharing Bus
         if SHARING_AVAILABLE:
+            # We initialize with empty IDs; they will be updated during registration
             self.exchange_bus = EnergyExchangeBus(
+                mg_ids=[], 
                 bus_capacity_kw=200.0,
                 transfer_efficiency=0.95,
                 min_transfer_kw=5.0,
                 max_simultaneous=3,
                 min_donor_soc=30.0,
             )
-            logger.info("Energy Exchange Bus enabled for resource sharing")
+            logger.info("Energy Exchange Bus initialized with Markov failure model")
         else:
             self.exchange_bus = None
             logger.info("Energy Exchange Bus not available")
@@ -331,6 +333,15 @@ class CityEMS:
             microgrid_info: Information about the microgrid to register
         """
         self.microgrids[microgrid_info.microgrid_id] = microgrid_info
+        
+        # Update sharing bus with new MG ID
+        if self.exchange_bus:
+            if microgrid_info.microgrid_id not in self.exchange_bus.mg_ids:
+                self.exchange_bus.mg_ids.append(microgrid_info.microgrid_id)
+                from src.ems.resource_sharing import CyberLinkManager
+                # Re-initialize manager with updated ID list
+                self.exchange_bus.link_manager = CyberLinkManager(self.exchange_bus.mg_ids)
+
         logger.info(f"Registered microgrid: {microgrid_info.microgrid_id} "
                    f"(Type: {microgrid_info.microgrid_type}, "
                    f"Priority: {microgrid_info.priority.name})")
@@ -373,9 +384,18 @@ class CityEMS:
             if dr_commands:
                 outputs.info.append(f"Active DR events: {len(dr_commands)} commands issued")
         
-        # Update sharing bus link status
+        # Update sharing bus link status (Cyber-Physical Coordination)
+        effective_failed_links = failed_links
         if self.exchange_bus:
-            self.exchange_bus.set_failed_links(failed_links or set())
+            if effective_failed_links is None:
+                # Use internal Markov model to generate link status
+                effective_failed_links = self.exchange_bus.link_manager.update_states()
+            
+            self.exchange_bus.set_failed_links(effective_failed_links)
+            
+            # Record telemetry
+            self.exchange_bus.metrics.total_link_samples += len(self.microgrids)
+            self.exchange_bus.metrics.failed_link_samples += len(effective_failed_links)
         
         # Run city-level state machine
         outputs = self._run_city_state_machine(measurements, outputs)
@@ -478,15 +498,19 @@ class CityEMS:
                 )
 
         outputs.metrics['optimizer_type'] = 'predictive_mpc'
-        outputs.metrics['optimizer_objective'] = solution.objective_value
-        outputs.metrics['optimizer_solve_ms'] = solution.solve_time_ms
-        outputs.metrics['optimizer_cost_breakdown'] = solution.cost_breakdown
-        outputs.metrics['optimizer_total_shed_kw'] = solution.total_shed_kw
-        outputs.metrics['optimizer_total_gen_kw'] = solution.total_gen_kw
-        outputs.metrics['optimizer_horizon'] = solution.horizon_steps
-        outputs.metrics['optimizer_n_variables'] = solution.n_variables
-        outputs.metrics['optimizer_n_constraints'] = solution.n_constraints
-        outputs.metrics['optimizer_iterations'] = solution.solver_iterations
+        outputs.metrics['optimizer_objective'] = float(solution.objective_value)
+        outputs.metrics['optimizer_solve_ms'] = float(solution.solve_time_ms)
+        
+        # Flatten cost breakdown to avoid dict-in-metrics issues
+        for cost_name, cost_val in solution.cost_breakdown.items():
+            outputs.metrics[f'optimizer_cost_{cost_name}'] = float(cost_val)
+
+        outputs.metrics['optimizer_total_shed_kw'] = float(solution.total_shed_kw)
+        outputs.metrics['optimizer_total_gen_kw'] = float(solution.total_gen_kw)
+        outputs.metrics['optimizer_horizon'] = int(solution.horizon_steps)
+        outputs.metrics['optimizer_n_variables'] = int(solution.n_variables)
+        outputs.metrics['optimizer_n_constraints'] = int(solution.n_constraints)
+        outputs.metrics['optimizer_iterations'] = int(solution.solver_iterations)
 
         return outputs
 

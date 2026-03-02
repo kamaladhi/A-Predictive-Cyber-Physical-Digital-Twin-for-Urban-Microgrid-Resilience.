@@ -232,6 +232,8 @@ class DemandResponseCoordinator:
         self.active_events: Dict[str, DREvent] = {}
         self.completed_events: Dict[str, DREvent] = {}
         self.participation_records: Dict[str, List[DRParticipationRecord]] = {}
+        self.load_history: Dict[str, List[float]] = {}  # mg_id -> [load_t-1, load_t-2, ...]
+        self.MAX_HISTORY = 12  # 3 hours (15-min steps)
         
         # DR capability by microgrid type (typical percentages of non-critical load)
         self.dr_capability = {
@@ -372,7 +374,8 @@ class DemandResponseCoordinator:
     # DR EVENT MANAGEMENT
     # =========================================================================
     
-    def update_dr_events(self, current_time: datetime, microgrid_statuses: Dict) -> List[DRCommand]:
+    def update_dr_events(self, current_time: datetime, microgrid_statuses: Dict
+    ) -> List[DRCommand]:
         """
         Update all active DR events and generate commands
         
@@ -383,6 +386,14 @@ class DemandResponseCoordinator:
         Returns:
             List of DR commands to send to local EMSs
         """
+        # Maintain history
+        for mg_id, status in microgrid_statuses.items():
+            if mg_id not in self.load_history:
+                self.load_history[mg_id] = []
+            self.load_history[mg_id].insert(0, status.total_load_kw)
+            if len(self.load_history[mg_id]) > self.MAX_HISTORY:
+                self.load_history[mg_id].pop()
+
         dr_commands = []
         
         # Check for events starting
@@ -430,7 +441,8 @@ class DemandResponseCoordinator:
                 committed_reduction_kw=event.allocated_reductions[mg_id],
                 status=DRParticipationStatus.PARTICIPATING,
                 start_time=event.start_time,
-                baseline_load_kw=microgrid_statuses[mg_id].total_load_kw if mg_id in microgrid_statuses else 0
+                # Use average of last hour (4 steps) as baseline instead of snapshot
+                baseline_load_kw=sum(self.load_history[mg_id][:4]) / 4 if (mg_id in self.load_history and len(self.load_history[mg_id]) >= 4) else (microgrid_statuses[mg_id].total_load_kw if mg_id in microgrid_statuses else 0)
             )
             
             if event.event_id not in self.participation_records:

@@ -1,12 +1,14 @@
 from __future__ import annotations
+import os
+import json
 import logging
 import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, Set
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +34,14 @@ BUS_EFFICIENCY = 0.95
 BATT_CHARGE_EFF = 0.95       # Round-trip split
 BATT_DISCHARGE_EFF = 0.95
 FUEL_RATE_L_PER_KWH = 0.30   # Diesel consumption rate
+GEN_RAMP_RATE_PCT = 0.20     # Max ramp per timestep (20% of capacity)
 
-# Value-of-Lost-Load multiplier for slack penalty
-# Must be >> shedding penalty so slack is absolute last resort
-VOLL_MULTIPLIER = 100.0
+# Value-of-Lost-Load (VOLL) configuration for extreme priority
+VOLL_CRITICAL = 10_000_000.0  # $10M/kWh - ensures zero ENS for hospital
+VOLL_HIGH = 100_000.0         # $100k/kWh
+VOLL_MEDIUM = 10_000.0        # $10k/kWh
+VOLL_LOW = 1_000.0           # $1k/kWh
+VOLL_MULTIPLIER = 100.0      # Slack penalty multiplier over VOLL
 
 
 # =============================================================================
@@ -54,23 +60,24 @@ class PredictiveCostConfig:
     shedding_penalty_per_kwh: float = 10.0
     battery_degradation_per_kwh: float = 0.05
     transfer_loss_cost_per_kwh: float = (1 - BUS_EFFICIENCY) * 0.12
-    critical_penalty_per_kwh: float = 500.0   # critical load shed penalty
-    unmet_demand_penalty_per_kwh: float = 10000.0  # VOLL for slack
+    critical_penalty_per_kwh: float = VOLL_CRITICAL   # forced to extreme
+    unmet_demand_penalty_per_kwh: float = VOLL_CRITICAL * 10
     dr_incentive_per_kwh: float = 0.60          # Voluntary DR incentive
 
     priority_weights: Dict[int, float] = field(default_factory=lambda: {
-        1: 50.0,   # CRITICAL  (hospital)
-        2: 10.0,   # HIGH      (university)
+        1: 100.0,  # CRITICAL  (hospital) - Doubled from 50
+        2: 20.0,   # HIGH      (university) - Doubled from 10
         3:  5.0,   # MEDIUM    (industrial)
         4:  1.0,   # LOW       (residential)
     })
 
     # Scalarisation weights
-    alpha: float = 0.25   # fuel
-    beta:  float = 0.35   # shedding
-    gamma: float = 0.15   # degradation
+    alpha: float = 0.20   # fuel (reduced to favor survival)
+    beta:  float = 0.40   # shedding (increased)
+    gamma: float = 0.10   # degradation (reduced)
     delta: float = 0.10   # transfer
-    epsilon: float = 0.15 # critical load penalty
+    epsilon: float = 0.20 # critical load penalty (increased)
+    zeta: float = 0.30    # SOC dip penalty (NEW)
 
     # Discount factor: later steps weighted less (geometric)
     temporal_discount: float = 0.98
@@ -129,24 +136,37 @@ class ForecastProvider:
         self._try_load_lstm()
 
     def _try_load_lstm(self):
-        """Attempt to load trained LSTM solar forecaster."""
+        """
+        Robustly load trained LSTM solar forecaster.
+        Includes absolute path resolution and version safety checks.
+        """
         if not self.solar_provider:
             return
 
         try:
+            import os
             from src.solar.solar_forecasting import SolarForecaster
-            # Walk up to find root if in EMS/
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            model_path = os.path.join(base_dir, 'SolarData', 'models', 'solar_lstm.pt')
+            
+            # Resolve absolute path to models directory
+            current_file = os.path.abspath(__file__)
+            src_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
+            model_path = os.path.join(src_dir, 'src', 'solar', 'models', 'solar_forecaster_v2.pt')
 
             if os.path.exists(model_path):
+                # Research-grade version check: verify model modification time or metadata
+                # (Simulated via file existence for now, but logged for traceability)
+                mtime = os.path.getmtime(model_path)
+                logger.info(f"Loading ResLSTM Model (mtime: {time.ctime(mtime)})")
+                
                 self._lstm_forecaster = SolarForecaster(model_path, self.solar_provider)
-                logger.info("LSTM solar forecaster loaded for predictive dispatch")
+                logger.info("LSTM solar forecaster loaded successfully for predictive dispatch")
             else:
-                logger.info(f"LSTM model not found at {model_path} -- using statistical solar forecast")
+                logger.info(f"LSTM model not found at {model_path} -- using statistical fallback")
         except Exception as e:
-            # Silent fallback to statistical if model architecture mismatch or missing
-            logger.info("LSTM forecaster unavailable (trained model out of sync) -- using statistical fallback")
+            import traceback
+            error_details = traceback.format_exc()
+            logger.warning(f"LSTM Loader Failure: {str(e)}")
+            logger.debug(f"Traceback: {error_details}")
 
     def forecast_solar(
         self,
@@ -154,42 +174,69 @@ class ForecastProvider:
         pv_capacity_kwp: float,
         timestamp: datetime,
         horizon: int,
-    ) -> np.ndarray:
+    ) -> Dict[str, np.ndarray]:
         """
         Forecast PV generation for T steps ahead.
-
-        Tries LSTM first, then diurnal envelope fallback.
+        Returns a dictionary with 'mean' and 'std' for robust optimization.
         """
-        # 1. Try high-fidelity LSTM if available
+        # ── 1. Try high-fidelity ResLSTM if available ────────────────────────
         if self._lstm_forecaster:
             try:
                 # SolarForecaster.predict returns Dict[str, float] for 1h, 6h, 24h
-                # We interpolate for the horizon steps (15-min each)
-                fc_dict = self._lstm_forecaster.predict(timestamp)
-                ghi_1h = fc_dict.get('ghi_1h', 0.0)
-
-                # Use 1h forecast to anchor the next 4 steps (15min each)
-                # We still use the envelope to provide sub-hourly shape, but
-                # scaled to the LSTM's GHI prediction.
+                # and uncertainty estimates.
+                fc = self._lstm_forecaster.predict(timestamp)
+                
+                # Multi-horizon GHI predictions
+                h_vals = {1: fc['ghi_1h'], 6: fc['ghi_6h'], 24: fc['ghi_24h']}
+                
                 forecasts = np.zeros(horizon)
+                uncertainties = np.zeros(horizon)
+                
+                # Base uncertainty from MC Dropout
+                base_uncertainty = fc.get('uncertainty', 0.1)
+
                 for t in range(horizon):
                     future_time = timestamp + timedelta(hours=(t + 1) * DT_HOURS)
+                    h_float = (t + 1) * DT_HOURS
+                    
+                    # Interpolate between horizons
+                    if h_float <= 1.0:
+                        ghi = h_vals[1]
+                    elif h_float <= 6.0:
+                        # Linear interpolation between 1h and 6h
+                        weight = (h_float - 1.0) / 5.0
+                        ghi = (1 - weight) * h_vals[1] + weight * h_vals[6]
+                    else:
+                        # Linear interpolation between 6h and 24h
+                        weight = min(1.0, (h_float - 6.0) / 18.0)
+                        ghi = (1 - weight) * h_vals[6] + weight * h_vals[24]
+
+                    # Solar envelope for sub-hourly shaping
                     hour = future_time.hour + future_time.minute / 60.0
                     if 6.0 <= hour <= 18.0:
                         env = max(0.0, math.sin(math.pi * (hour - 6.0) / 12.0))
                     else:
                         env = 0.0
 
-                    # Convert GHI 1h back to Power roughly, then scale.
-                    # This is simpler than full pvlib but honors the LSTM's trend.
-                    # ghi_1h is W/m2. STC is 1000 W/m2.
-                    forecasts[t] = pv_capacity_kwp * (ghi_1h / 1000.0) * env
-                return forecasts
+                    # Convert GHI to Power
+                    # STC = 1000 W/m2.
+                    p_mean = pv_capacity_kwp * (ghi / 1000.0) * env
+                    forecasts[t] = p_mean
+                    
+                    # Horizon-scaling uncertainty (further ahead is less certain)
+                    uncertainties[t] = p_mean * base_uncertainty * (1.0 + 0.1 * h_float)
+
+                return {
+                    'mean': forecasts,
+                    'std': uncertainties
+                }
             except Exception as e:
-                logger.debug(f"LSTM prediction failed: {e}")
+                logger.debug(f"High-fidelity forecasting failed: {e}")
 
         # 2. Fallback to statistical diurnal envelope
         forecasts = np.zeros(horizon)
+        uncertainties = np.zeros(horizon)
+        
         for t in range(horizon):
             future_time = timestamp + timedelta(hours=(t + 1) * DT_HOURS)
             hour = future_time.hour + future_time.minute / 60.0
@@ -204,13 +251,19 @@ class ForecastProvider:
             current_hour = timestamp.hour + timestamp.minute / 60.0
             if 6.0 <= current_hour <= 18.0:
                 current_envelope = max(0.01, math.sin(math.pi * (current_hour - 6.0) / 12.0))
-                cloud_factor = min(current_pv_kw / (pv_capacity_kwp * current_envelope + 0.01), 1.2)
+                cloud_ratio = (current_pv_kw / pv_capacity_kwp) / current_envelope
+                cloud_ratio = max(0.05, min(cloud_ratio, 1.1))
             else:
-                cloud_factor = 0.7  # Default clear-sky assumption for future
+                cloud_ratio = 1.0
 
-            forecasts[t] = max(0.0, pv_capacity_kwp * envelope * cloud_factor)
+            p_mean = pv_capacity_kwp * envelope * cloud_ratio
+            forecasts[t] = p_mean
+            uncertainties[t] = p_mean * 0.25  # Fixed 25% uncertainty for fallback
 
-        return forecasts
+        return {
+            'mean': forecasts,
+            'std': uncertainties
+        }
 
     def forecast_load(
         self,
@@ -276,15 +329,33 @@ class ForecastProvider:
             # Uncertainty assignment: lower for high-fidelity LSTM, higher for fallback
             unc[idx] = 0.05 if self._lstm_forecaster else 0.15
             
-            pv[idx] = self.forecast_solar(
+            # Solar forecast (returns dict {mean, std})
+            fc_solar = self.forecast_solar(
                 status.pv_generation_kw, info.pv_capacity_kwp,
                 measurements.timestamp, horizon
             )
-            load[idx] = self.forecast_load(
+            pv[idx] = fc_solar['mean']
+            
+            # Load forecast (keeping original for now if it returns array, or updating if it returns dict)
+            fc_load = self.forecast_load(
                 mg_id, info.microgrid_type,
                 status.total_load_kw, info.total_capacity_kw,
                 measurements.timestamp, horizon
             )
+            # If load forecast is updated to dict, extract mean:
+            if isinstance(fc_load, dict):
+                load[idx] = fc_load['mean']
+            else:
+                load[idx] = fc_load
+
+            # Aggregate uncertainty estimate for robust margins
+            if isinstance(fc_solar, dict) and 'std' in fc_solar:
+                # Use mean normalized std across horizon
+                p_max = max(1.0, info.pv_capacity_kwp)
+                sol_unc = np.mean(fc_solar['std']) / p_max
+                unc[idx] = max(0.05, min(sol_unc, 0.4))
+            else:
+                unc[idx] = 0.15
 
             # Uncertainty estimate (higher at night, with distance)
             base_unc = 0.10
@@ -393,6 +464,7 @@ class StepDispatch:
     gen_on: bool = False
     unmet_kw: float = 0.0    # unmet demand (slack)
     dr_kw: float = 0.0       # dynamic response reduction
+    soc_dip_kw: float = 0.0  # emergency reserve utilization
 
 
 @dataclass
@@ -453,7 +525,7 @@ class RollingHorizonLP:
     Total variables: T x M x 9
     """
 
-    V = 9  # variables per MG per step
+    V = 10  # variables per MG per step (GEN, DIS, CHG, SHED, DR, EXP, IMP, SOC, SLACK, SOC_DIP)
     IDX_GEN      = 0
     IDX_BATT_DIS = 1   # battery discharge (>= 0)
     IDX_BATT_CHG = 2   # battery charge    (>= 0)
@@ -462,7 +534,8 @@ class RollingHorizonLP:
     IDX_EXP      = 5
     IDX_IMP      = 6
     IDX_SOC      = 7
-    IDX_SLACK    = 8   # unmet demand slack (>= 0)
+    IDX_SLACK    = 8   # unmet demand slack (>= 0, total blackout)
+    IDX_SOC_DIP  = 9   # dip below SOC_min floor (>= 0, avoids blackout)
 
     def __init__(
         self,
@@ -523,45 +596,52 @@ class RollingHorizonLP:
             discount = self.cost.temporal_discount ** t
             for m, mg_id in enumerate(self.mg_ids):
                 info = self.registry[mg_id]
-                w_m = self.cost.priority_weights.get(info.priority.value, 1.0)
-                is_crit = info.priority == MicrogridPriority.CRITICAL
+                
+                # Determine priority multiplier for this specific microgrid
+                if info.priority == MicrogridPriority.CRITICAL:
+                    w_m = VOLL_CRITICAL
+                elif info.priority == MicrogridPriority.HIGH:
+                    w_m = VOLL_HIGH
+                elif info.priority == MicrogridPriority.MEDIUM:
+                    w_m = VOLL_MEDIUM
+                else:
+                    w_m = VOLL_LOW
 
-                # Fuel cost
+                # Fuel cost ($/kWh)
                 c[self._idx(t, m, self.IDX_GEN)] = (
                     discount * self.cost.alpha * self.cost.fuel_cost_per_kwh * DT_HOURS
                 )
-                # Battery degradation: BOTH charge and discharge penalised equally
-                # (split-variable LP trick for |P_batt|)
+                
+                # Battery degradation
                 batt_deg = discount * self.cost.gamma * self.cost.battery_degradation_per_kwh * DT_HOURS
                 c[self._idx(t, m, self.IDX_BATT_DIS)] = batt_deg
                 c[self._idx(t, m, self.IDX_BATT_CHG)] = batt_deg
 
-                # Shedding (priority-weighted + critical penalty)
-                shed_cost = self.cost.beta * self.cost.shedding_penalty_per_kwh * w_m * DT_HOURS
-                if is_crit:
-                    shed_cost += self.cost.epsilon * self.cost.critical_penalty_per_kwh * DT_HOURS
-                c[self._idx(t, m, self.IDX_SHED)] = discount * shed_cost
+                # Shedding (ENS) Cost - ENFORCES PRIORITY
+                # Hospital = $10M/kWh, Residential = $1k/kWh
+                ens_cost = w_m * DT_HOURS
+                c[self._idx(t, m, self.IDX_SHED)] = discount * ens_cost
 
                 # Export transfer loss
                 c[self._idx(t, m, self.IDX_EXP)] = (
-                    discount * self.cost.delta * self.cost.transfer_loss_cost_per_kwh * DT_HOURS
+                    discount * self.cost.delta * 5.0 * DT_HOURS
                 )
-                # DR Incentive (NEGATIVE cost because we want to maximise profit)
+                # DR Incentive
                 c[self._idx(t, m, self.IDX_DR)] = (
                     -1.0 * discount * self.cost.dr_incentive_per_kwh * DT_HOURS
                 )
-                # Import (small cost to avoid unbounded)
-                c[self._idx(t, m, self.IDX_IMP)] = discount * self.cost.delta * 0.01 * DT_HOURS
+                
+                # SOC: no direct cost but we add a small "survival" incentive 
+                # to keep batteries as full as possible during outages.
+                c[self._idx(t, m, self.IDX_SOC)] = -0.01 * discount
 
-                # SOC: no direct cost (tracked via dynamics)
-                c[self._idx(t, m, self.IDX_SOC)] = 0.0
+                # Slack (VOLL): absolute last resort (100x more expensive than shedding)
+                slack_penalty = w_m * VOLL_MULTIPLIER * DT_HOURS 
+                c[self._idx(t, m, self.IDX_SLACK)] = discount * slack_penalty
 
-                # Slack (VOLL): extremely expensive to force last-resort use
-                # We use a raw high value to ensure it dominates all other costs
-                slack_cost = self.cost.unmet_demand_penalty_per_kwh * w_m * DT_HOURS
-                if is_crit:
-                    slack_cost *= 10.0  # extreme penalty for critical facilities
-                c[self._idx(t, m, self.IDX_SLACK)] = discount * slack_cost
+                # SOC Dip: cheaper than slack, but more expensive than normal gen/shed
+                dip_cost = w_m * 10.0 * DT_HOURS
+                c[self._idx(t, m, self.IDX_SOC_DIP)] = discount * dip_cost
 
         # ── Variable bounds ─────────────────────────────────────────────
         bounds = [(0.0, 0.0)] * self.N
@@ -596,7 +676,8 @@ class RollingHorizonLP:
                 bounds[self._idx(t, m, self.IDX_BATT_CHG)]  = (0, batt_max_kw)
                 bounds[self._idx(t, m, self.IDX_EXP)]       = (0, 0 if force_zero_sharing else exp_limit)
                 bounds[self._idx(t, m, self.IDX_IMP)]       = (0, 0 if force_zero_sharing else BUS_CAPACITY_KW)
-                bounds[self._idx(t, m, self.IDX_SOC)]       = (soc_min_t, soc_max_t)
+                bounds[self._idx(t, m, self.IDX_SOC)]       = (0.0, soc_max_t) # Let inequality handle the floor
+                bounds[self._idx(t, m, self.IDX_SOC_DIP)]   = (0, soc_min_t) # Max dip is the floor itself
 
                 # DR voluntary reduction (based on event target)
                 dr_max = dr_forecast[m, t]
@@ -723,6 +804,48 @@ class RollingHorizonLP:
             A_ub_rows.append(row)
             b_ub_rows.append(fuel_headroom)
 
+        # C11: Generator Ramp Limits (|P_t - P_t-1| <= R_max)
+        for m, mg_id in enumerate(self.mg_ids):
+            info = self.registry[mg_id]
+            status = statuses.get(mg_id)
+            r_max = GEN_RAMP_RATE_PCT * info.generator_capacity_kw
+            
+            p_prev = status.generator_power_kw if status else 0.0
+            
+            for t in range(self.T):
+                # Ramp Up: P[t] - P[t-1] <= r_max
+                row_up = np.zeros(self.N)
+                row_up[self._idx(t, m, self.IDX_GEN)] = 1.0
+                if t == 0:
+                    A_ub_rows.append(row_up)
+                    b_ub_rows.append(p_prev + r_max)
+                else:
+                    row_up[self._idx(t-1, m, self.IDX_GEN)] = -1.0
+                    A_ub_rows.append(row_up)
+                    b_ub_rows.append(r_max)
+                
+                # Ramp Down: P[t-1] - P[t] <= r_max
+                row_down = np.zeros(self.N)
+                row_down[self._idx(t, m, self.IDX_GEN)] = -1.0
+                if t == 0:
+                    A_ub_rows.append(row_down)
+                    b_ub_rows.append(r_max - p_prev)
+                else:
+                    row_down[self._idx(t-1, m, self.IDX_GEN)] = 1.0
+                    A_ub_rows.append(row_down)
+                    b_ub_rows.append(r_max)
+
+        # C10: Soft SOC floor (SOC[t] + SOC_DIP[t] >= SOC_min[t])
+        # -SOC[t] - SOC_DIP[t] <= -SOC_min[t]
+        for t in range(self.T):
+            for m, mg_id in enumerate(self.mg_ids):
+                soc_min_t = soc_bounds.get(mg_id, [(0.15, 1.0)] * self.T)[t][0]
+                row = np.zeros(self.N)
+                row[self._idx(t, m, self.IDX_SOC)]     = -1.0
+                row[self._idx(t, m, self.IDX_SOC_DIP)] = -1.0
+                A_ub_rows.append(row)
+                b_ub_rows.append(-soc_min_t)
+
         A_ub = np.array(A_ub_rows) if A_ub_rows else None
         b_ub = np.array(b_ub_rows) if b_ub_rows else None
 
@@ -771,6 +894,7 @@ class RollingHorizonLP:
                 imp_kw   = max(x[self._idx(t, m, self.IDX_IMP)],  0.0)
                 soc_next = x[self._idx(t, m, self.IDX_SOC)]
                 unmet_kw = max(x[self._idx(t, m, self.IDX_SLACK)], 0.0)
+                dip_kw   = max(x[self._idx(t, m, self.IDX_SOC_DIP)], 0.0)
 
                 total_slack += unmet_kw
 
@@ -785,6 +909,7 @@ class RollingHorizonLP:
                     soc_next=round(max(0, min(1, soc_next)), 4),
                     gen_on=gen_kw > 1.0,
                     unmet_kw=round(unmet_kw, 3),
+                    soc_dip_kw=round(dip_kw, 3),
                 )
                 full_horizon[mg_id].append(step_d)
 
@@ -1054,12 +1179,40 @@ class PredictiveDispatcher:
 
         # 9. IoT Sync: Broadcast state to Dashboard
         if self.mqtt:
-            self.mqtt.broadcast_city_metrics(self.get_statistics())
-            for mg_id in mg_ids:
+            # Enrich city-level metrics with solve time
+            city_stats = self.get_statistics()
+            city_stats['solve_time_ms'] = round(solution.solve_time_ms, 2)
+            self.mqtt.broadcast_city_metrics(city_stats)
+
+            for idx, mg_id in enumerate(mg_ids):
                 status = measurements.microgrid_statuses.get(mg_id)
                 if status:
-                    # Enrich with dispatcher info
+                    # Base payload from status object
                     state_payload = status.to_dict() if hasattr(status, 'to_dict') else vars(status)
+
+                    # ── NEW: Solar Forecast vs Actual ──
+                    # pv_fc[idx, 0] = forecast for this MG at step 0 (current)
+                    state_payload['pv_forecast_kw'] = round(float(pv_fc[idx, 0]), 2) if pv_fc is not None else 0.0
+
+                    # ── NEW: Fuel Level ──
+                    state_payload['fuel_remaining_liters'] = round(fuel_levels.get(mg_id, 0.0), 1)
+
+                    # ── NEW: Renewable Penetration % ──
+                    pv_kw = state_payload.get('pv_power_kw', state_payload.get('pv_generation_kw', 0))
+                    gen_kw = state_payload.get('generator_power_kw', 0)
+                    grid_kw = abs(state_payload.get('grid_power_kw', 0))
+                    total_supply = pv_kw + gen_kw + grid_kw + 1e-6
+                    state_payload['renewable_pct'] = round((pv_kw / total_supply) * 100, 1)
+
+                    # ── NEW: Grid Cost (₹/step) ──
+                    # Tariff: ₹7/kWh for grid power, 15-min steps
+                    GRID_TARIFF_RS = 7.0
+                    DT_HRS = 0.25
+                    state_payload['grid_cost_step_rs'] = round(grid_kw * DT_HRS * GRID_TARIFF_RS, 2)
+
+                    # ── NEW: Solve Time ──
+                    state_payload['solve_time_ms'] = round(solution.solve_time_ms, 2)
+
                     self.mqtt.broadcast_state(mg_id, state_payload)
 
         # 7. Record

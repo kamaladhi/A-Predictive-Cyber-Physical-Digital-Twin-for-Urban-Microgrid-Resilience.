@@ -81,12 +81,18 @@ except ImportError as e:
     _import_err = str(e)
 
 # ─── Logging ────────────────────────────────────────────────────────────────
+log_file = os.path.join(root_dir, 'results', 'experiment_run.log')
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)-7s | %(name)-20s | %(message)s",
     datefmt="%H:%M:%S",
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger("Experiment")
+logger.info(f"Logging initialized. Output also saved to: {log_file}")
 
 DT_HOURS = 0.25
 FUEL_RATE_L_PER_KWH = 0.30   # Diesel consumption rate (liters per kWh)
@@ -607,6 +613,7 @@ def run_trial(
     realtime_speed: float = 0.0,
     force_outage: bool = False,
     force_shortage: bool = False,
+    no_lstm: bool = False,
 ) -> Dict[str, Any]:
     """
     Run one trial with closed-loop simulation.
@@ -648,6 +655,13 @@ def run_trial(
     # Shared Digital Twin Simulator (same seed for identical conditions)
     simulator = ReactiveSimulator(registry, solar_provider=solar_provider, seed=trial_seed, force_shortage=force_shortage)
 
+    # ── Interactive Override State ──
+    override_state = {
+        'force_outage': force_outage,
+        'force_shortage': force_shortage,
+        'force_cyber_attack': False,  # FIX 6: Cyber-attack sensor corruption
+    }
+
     # If using optimizer, link it to the ems instance
     dispatcher = None
     state_estimator = None
@@ -657,10 +671,30 @@ def run_trial(
             
         # Initialize MQTT if requested
         mqtt = None
+        mqtt_sub = None
         fusion = None
         if use_mqtt:
-            mqtt = MqttPublisher("sim_engine")
+            mqtt = MqttPublisher("sim_engine_pub")
             mqtt.connect()
+            
+            # Add subscriber for dashboard overrides
+            from src.ems.mqtt_manager import MqttSubscriber
+            mqtt_sub = MqttSubscriber("sim_engine_sub")
+            if mqtt_sub.connect():
+                def handle_override(payload):
+                    action = payload.get("action")
+                    val = payload.get("value", False)
+                    if action == "set_outage":
+                        override_state['force_outage'] = val
+                        logger.warning(f"MQTT OVERRIDE: Outage set to {val}")
+                    elif action == "set_shortage":
+                        override_state['force_shortage'] = val
+                        logger.warning(f"MQTT OVERRIDE: Shortage set to {val}")
+                    elif action == "set_cyber_attack":
+                        override_state['force_cyber_attack'] = val
+                        logger.warning(f"MQTT OVERRIDE: Cyber-attack set to {val}")
+                mqtt_sub.on_control_override(handle_override)
+            
             fusion = DataFusionEngine()
             logger.info("Real-time IoT synchronization enabled via MQTT.")
 
@@ -668,7 +702,7 @@ def run_trial(
             mg_registry=registry,
             policy=policy,
             horizon=horizon,
-            solar_provider=solar_provider,
+            solar_provider=None if no_lstm else solar_provider,
             mqtt_publisher=mqtt
         )
         ems.optimizer = dispatcher  # Inject into ems
@@ -720,11 +754,15 @@ def run_trial(
     customer_interruption_durations = {mg: 0.0 for mg in registry}
     customer_interruptions = {mg: 0 for mg in registry}
     prev_was_shedding = {mg: False for mg in registry}
+    estimates = {}  # EKF estimates (populated each step if state_estimator is active)
 
     for step in range(total_steps):
         timestamp = start + step * dt
-        islanded = outage_gen.is_outage(step)
-        intensity = outage_gen.outage_intensity(step)
+        
+        # Apply interactive overrides or default generator
+        islanded = override_state['force_outage'] or outage_gen.is_outage(step)
+        intensity = 1.0 if override_state['force_shortage'] else outage_gen.outage_intensity(step)
+        simulator.force_shortage = override_state['force_shortage']
 
         # ── Step 0: Trigger DR events (if enabled) ──
         if dr_coord and (islanded or intensity > 0.5):
@@ -743,9 +781,12 @@ def run_trial(
         # ── Step 0.5: Cyber-Resilience Modeling ──
         failed_links = set()
         if islanded or intensity > 0.3:
-            # Stochastic link failures (per-step per MG during stress/outage)
-            for mg_id in registry:
-                if np.random.random() < cyber_fault_prob:
+            # Stochastic link failures based on priority (Bernoulli process)
+            # Hospitals (Priority 1) have redundant links: 1% of base fault
+            # Residents (Priority 4) have standard consumer links: 100% of base fault
+            for mg_id, info in registry.items():
+                prob_scale = 0.01 if info.priority == MicrogridPriority.CRITICAL else (0.4 if info.priority == MicrogridPriority.HIGH else 1.0)
+                if np.random.random() < (cyber_fault_prob * prob_scale):
                     failed_links.add(mg_id)
 
         # ── Step 1: Generate measurements (apply previous commands) ──
@@ -780,6 +821,22 @@ def run_trial(
 
             # Update EKF estimates
             estimates = state_estimator.update_all(DT_MINUTES * 60, noisy_obs, prev_ctrl)
+
+            # ── FIX 6: Cyber-Attack Injection ──
+            # If cyber attack is active, corrupt sensor readings with large bias
+            if override_state.get('force_cyber_attack', False):
+                for mg_id in noisy_obs:
+                    noisy_obs[mg_id]['battery_soc_percent'] += np.random.uniform(15, 30)
+                    noisy_obs[mg_id]['total_load_kw'] *= np.random.uniform(0.3, 0.6)
+                # Re-run EKF with corrupted data so anomaly detection triggers
+                estimates = state_estimator.update_all(DT_MINUTES * 60, noisy_obs, prev_ctrl)
+
+            # ── FIX 6: EKF Anomaly Detection → Alert ──
+            if use_mqtt and mqtt:
+                for mg_id, estimator_obj in state_estimator.mg_estimators.items():
+                    anomaly = estimator_obj.detect_anomaly(threshold_sigma=3.0)
+                    if anomaly:
+                        mqtt.broadcast_alert("critical", f"🛡️ CYBER: {mg_id} — {anomaly}")
             
             # Switch 'meas' to ESTIMATED view for the dispatcher
             from copy import deepcopy
@@ -826,12 +883,75 @@ def run_trial(
             
             # Broadcast city metrics to Dashboard (IoT Sync)
             if use_mqtt and mqtt:
+                n_mg = len(registry)
+                total_service_hours_so_far = (step + 1) * DT_HOURS * n_mg
+                total_interruption_hours_so_far = sum(customer_interruption_durations.values())
+
                 stats = {
-                    "ASAI": 1.0 - (total_ens / (sum(r.critical_load_kw for r in registry.values()) * total_steps * DT_HOURS + 1e-6)),
-                    "EENS": total_ens,
-                    "SAIDI": sum(customer_interruption_durations.values()) / max(len(registry), 1)
+                    "ASAI": 1.0 - (total_interruption_hours_so_far / max(total_service_hours_so_far, 1e-6)),
+                    "EENS": round(total_ens, 2),
+                    # ── FIX 1: Real EKF confidence ──
+                    "ekf_city_confidence": round(
+                        state_estimator.get_city_confidence_score(estimates) * 100, 1
+                    ) if state_estimator and estimates else 0.0,
+                    # ── FIX 4: Live IEEE 1366 metrics ──
+                    "SAIDI": round(sum(customer_interruption_durations.values()) / max(n_mg, 1), 4),
+                    "SAIFI": round(sum(customer_interruptions.values()) / max(n_mg, 1), 4),
+                    "CAIDI": round(
+                        (sum(customer_interruption_durations.values()) / max(n_mg, 1)) /
+                        max(sum(customer_interruptions.values()) / max(n_mg, 1), 1e-6), 4
+                    ),
+                    "LOLP": round(total_shed_steps / max(step + 1, 1), 6),
                 }
                 mqtt.broadcast_city_metrics(stats)
+
+                # ── FIX 2: Predictive Horizon (Shadow Sim Lite) ──
+                # Every 12 steps (~3 sim hours), compute forward predictions
+                if step % 12 == 0 and step > 0:
+                    predictions = {}
+                    for mg_id, status in meas.microgrid_statuses.items():
+                        soc = status.battery_soc_percent
+                        cap = registry[mg_id].battery_capacity_kwh
+                        load = status.total_load_kw
+                        pv = status.pv_power_kw if hasattr(status, 'pv_power_kw') else 0
+                        gen = status.generator_power_kw if hasattr(status, 'generator_power_kw') else 0
+                        fuel = fuel_levels.get(mg_id, 0) if 'fuel_levels' in dir() else 0
+
+                        # Time to battery exhaustion (hours)
+                        net_draw = max(load - pv - gen, 0.1)
+                        remaining_kwh = (soc / 100.0) * cap
+                        tte_hours = remaining_kwh / net_draw
+
+                        # Fuel exhaustion (hours) — diesel consumption ~0.3 L/kWh
+                        fuel_hours = fuel / max(gen * 0.3, 0.01) if gen > 0.5 else float('inf')
+
+                        # Risk assessment
+                        risk = "LOW"
+                        actions = []
+                        if tte_hours < 2.0:
+                            risk = "CRITICAL"
+                            actions.append(f"Battery exhaustion in {tte_hours:.1f}h — request energy import")
+                        elif tte_hours < 6.0:
+                            risk = "ELEVATED"
+                            actions.append(f"Battery at {soc:.0f}% — consider load shedding")
+                        if fuel_hours < 4.0 and gen > 0.5:
+                            risk = "CRITICAL" if risk != "CRITICAL" else risk
+                            actions.append(f"Fuel exhaustion in {fuel_hours:.1f}h — generator at risk")
+                        if islanded and soc < 30:
+                            actions.append("Islanded with low SOC — prioritize critical loads")
+
+                        predictions[mg_id] = {
+                            'time_to_exhaustion_hours': round(tte_hours, 2),
+                            'fuel_remaining_hours': round(min(fuel_hours, 999), 2),
+                            'risk_level': risk,
+                            'recommended_actions': actions,
+                        }
+
+                    try:
+                        import json
+                        mqtt.client.publish("city/predictions", json.dumps(predictions))
+                    except Exception:
+                        pass
 
         # 4. Step delay for real-time mode
         if realtime_speed > 0:
@@ -940,7 +1060,7 @@ def run_trial(
 # ===========================================================================
 
 def run_experiment(
-    n_trials: int = 30,
+    n_trials: int = 100,
     duration_days: float = 30.0,
     base_seed: int = 42,
     policy: ResiliencePolicy = ResiliencePolicy.CRITICAL_FIRST,
@@ -952,13 +1072,23 @@ def run_experiment(
     realtime_speed: float = 0.0,
     force_outage: bool = False,
     force_shortage: bool = False,
+    no_lstm: bool = False,
+    config_filter: Optional[str] = None,
 ) -> List[Dict]:
     """Run matched paired trials: rule-based vs predictive-optimized."""
-    configs = [
+    all_configs = [
         ('Rule-Based', False),
         ('MPC-Optimized', True),
         ('MPC+DR-Optimized', True),
     ]
+    # Filter to a single config if specified (e.g., for live demo mode)
+    if config_filter:
+        configs = [(n, o) for n, o in all_configs if n == config_filter]
+        if not configs:
+            logger.warning(f"Config filter '{config_filter}' not found, running all.")
+            configs = all_configs
+    else:
+        configs = all_configs
     all_results = []
 
     logger.info("=" * 70)
@@ -1242,6 +1372,11 @@ def main():
                         help='DEMO: Force immediate and permanent city-wide blackout')
     parser.add_argument('--force-shortage', action='store_true',
                         help='DEMO: Force severe power shortage (high load, low solar)')
+    parser.add_argument('--no-lstm', action='store_true',
+                        help='Disable LSTM forecaster (force statistical fallback)')
+    parser.add_argument('--config', type=str, default=None,
+                        choices=['Rule-Based', 'MPC-Optimized', 'MPC+DR-Optimized'],
+                        help='Run only this config (default: all 3)')
     args = parser.parse_args()
 
     if args.quick:
@@ -1273,7 +1408,9 @@ def main():
         use_mqtt=args.mqtt,
         realtime_speed=args.realtime,
         force_outage=args.force_outage,
-        force_shortage=args.force_shortage
+        force_shortage=args.force_shortage,
+        no_lstm=args.no_lstm,
+        config_filter=args.config,
     )
 
     # Save raw results
