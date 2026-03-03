@@ -1,0 +1,140 @@
+{
+  "facility_name": "Regional Hospital",
+  "facility_type": "150-250 Bed Hospital",
+  "location": "Bangalore, Karnataka, India",
+  "latitude": 12.9716,
+  "longitude": 77.5946,
+  "timezone": "Asia/Kolkata",
+  "nominal_voltage_kv": 11,
+  "nominal_frequency_hz": 50,
+  "load_profile": {
+    "hour_blocks": [
+      [
+        0,
+        6,
+        550
+      ],
+      [
+        6,
+        9,
+        580
+      ],
+      [
+        9,
+        17,
+        600
+      ],
+      [
+        17,
+        20,
+        590
+      ],
+      [
+        20,
+        24,
+        560
+      ]
+    ],
+    "critical_loads": {
+      "icu_life_support": 120,
+      "operation_theatres": 80,
+      "emergency_labs": 70,
+      "essential_lighting": 30,
+      "it_monitoring": 20
+    },
+    "load_categories": {
+      "critical": {
+        "power_kw": 320,
+        "max_shed_percent": 0,
+        "priority": 1
+      },
+      "hvac_partial": {
+        "power_kw": 120,
+        "max_shed_percent": 70,
+        "priority": 4
+      },
+      "wards_lighting": {
+        "power_kw": 60,
+        "max_shed_percent": 60,
+        "priority": 5
+      },
+      "admin_misc": {
+        "power_kw": 100,
+        "max_shed_percent": 90,
+        "priority": 6
+      }
+    },
+    "hvac_partial_kw": 120,
+    "wards_lighting_kw": 60,
+    "admin_misc_kw": 100
+  },
+  "battery": {
+    "nominal_capacity_kwh": 2600,        // ~2600 kWh nominal -> ~2400 usable (adjust for chosen chemistry)
+    "usable_capacity_kwh": 2400.0,
+    "max_discharge_power_kw": 500.0,
+    "max_charge_power_kw": 500.0,
+    "round_trip_efficiency": 0.90,
+    "min_soc_percent": 10,
+    "max_soc_percent": 90,
+    "initial_soc_percent": 90
+  },
+  "pv": {
+    "installed_capacity_kwp": 400,
+    "panel_efficiency": 0.22,
+    "inverter_efficiency": 0.97,
+    "temperature_coefficient": -0.004,
+    "nominal_operating_temp": 45,
+    "design_insolation_kwh_m2_day": 5.5
+  },
+  "generator": {
+    "gen1_rated_power_kw": 450,
+    "gen1_rated_power_kva": 562.5,
+    "gen2_rated_power_kw": 450,
+    "gen2_rated_power_kva": 562.5,
+    "fuel_consumption_l_per_kwh": 0.26,
+    "min_load_ratio": 0.3,
+    "startup_time_seconds": 10,
+    "cooldown_time_seconds": 180,
+    "auto_start_soc_threshold": 25,
+    "auto_stop_soc_threshold": 80,
+    "min_on_time_minutes": 30,
+    "min_off_time_minutes": 15,
+    "fuel_tank_capacity_liters": 10000
+  },
+  "control": {
+    "backup_duration_hours": 6.0,
+    "time_resolution_minutes": 5,
+    "islanding_detection_time_ms": 50,
+    "reconnection_delay_seconds": 300,
+    "load_shedding_priority": [
+      "critical",
+      "hvac_partial",
+      "wards_lighting",
+      "admin_misc"
+    ],
+    "frequency_droop_coefficient": 0.04,
+    "voltage_droop_coefficient": 0.02,
+    "max_total_shed_kw": 280,
+    "max_shed_percent_per_step": 30,
+    "enforce_critical_load_priority": true,
+    "restore_time_min": 10,
+    "restore_margin_ratio": 0.25
+  },
+  "protection": {
+    "over_frequency_hz": 50.5,
+    "under_frequency_hz": 49.5,
+    "over_voltage_pu": 1.1,
+    "under_voltage_pu": 0.9,
+    "over_current_ratio": 1.5,
+    "reconnection_voltage_window_pu": [
+      0.95,
+      1.05
+    ],
+    "reconnection_frequency_window_hz": [
+      49.8,
+      50.2
+    ],
+    "critical_load_isolation_time_ms": 100,
+    "backup_power_transfer_time_ms": 50
+  }
+}

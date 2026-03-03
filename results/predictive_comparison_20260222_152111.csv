@@ -1,0 +1,4 @@
+config,use_optimizer,trial_seed,duration_days,total_steps,n_outage_events,total_outage_hours,total_ens_kwh,critical_ens_kwh,total_fuel_cost_usd,total_gen_kwh,total_batt_cycling_kwh,total_transfer_kwh,shed_steps,hospital_ens,university_ens,industrial_ens,residential_ens,SAIDI,SAIFI,CAIDI,EENS,LOLP,ASAI,avg_recovery_hours,avg_solve_ms,max_solve_ms,p95_solve_ms,trial_idx
+Rule-Based,False,42,3.0,288,1,4.5,53.4,0.0,732.92,2443.06,572.67,0.0,6,0.0,0.0,0.0,53.4,0.375,0.25,1.5,53.4,0.020833,0.99479167,1.5,0,0,0,0
+MPC-Optimized,True,42,3.0,288,1,4.5,470.12,90.44,557.78,1859.26,1515.82,203.09,18,90.44,22.31,100.85,256.52,1.9375,3.0,0.6458,470.12,0.0625,0.97309028,0.7719,2.015,4.601,3.075,0
+MPC+DR-Optimized,True,42,3.0,288,1,4.5,418.42,123.66,446.76,1489.21,1501.0,272.64,17,123.66,25.88,56.74,212.14,1.75,3.0,0.5833,418.42,0.059028,0.97569444,0.5312,2.165,7.366,3.443,0

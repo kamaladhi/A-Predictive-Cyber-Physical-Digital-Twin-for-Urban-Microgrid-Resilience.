@@ -1,0 +1,114 @@
+{
+  "campus_name": "Amrita University Coimbatore",
+  "location": "Coimbatore, Tamil Nadu, India",
+  "latitude": 11.0183,
+  "longitude": 76.9725,
+  "timezone": "Asia/Kolkata",
+  "nominal_voltage_kv": 11,
+  "nominal_frequency_hz": 50,
+  "load_profile": {
+    "hour_blocks": [
+      [
+        0,
+        5,
+        160
+      ],
+      [
+        5,
+        8,
+        260
+      ],
+      [
+        8,
+        13,
+        520
+      ],
+      [
+        13,
+        17,
+        600
+      ],
+      [
+        17,
+        22,
+        420
+      ],
+      [
+        22,
+        24,
+        240
+      ]
+    ],
+    "critical_loads": {
+      "data_center": 60,
+      "emergency_lighting": 20,
+      "research_labs": 80,
+      "communication": 25,
+      "essential_hvac": 40,
+      "medical_clinic": 15
+    },
+    "hvac_load_kw": 180,
+    "labs_load_kw": 140,
+    "lighting_load_kw": 100
+  },
+  "battery": {
+    "nominal_capacity_kwh": 2000,
+    "usable_capacity_kwh": 1800,
+    "max_discharge_power_kw": 400,
+    "max_charge_power_kw": 400,
+    "round_trip_efficiency": 0.91,
+    "min_soc_percent": 20,
+    "max_soc_percent": 95,
+    "initial_soc_percent": 80
+  },
+  "pv": {
+    "installed_capacity_kwp": 600,
+    "panel_efficiency": 0.2,
+    "inverter_efficiency": 0.97,
+    "temperature_coefficient": -0.004,
+    "nominal_operating_temp": 45,
+    "design_insolation_kwh_m2_day": 5.0
+  },
+  "generator": {
+    "rated_power_kw": 600,
+    "rated_power_kva": 750,
+    "fuel_consumption_l_per_kwh": 0.25,
+    "min_load_ratio": 0.3,
+    "startup_time_seconds": 15,
+    "cooldown_time_seconds": 300,
+    "auto_start_soc_threshold": 35,
+    "auto_stop_soc_threshold": 60,
+    "min_on_time_minutes": 30,
+    "min_off_time_minutes": 30
+  },
+  "control": {
+    "backup_duration_hours": 6,
+    "time_resolution_minutes": 5,
+    "islanding_detection_time_ms": 100,
+    "reconnection_delay_seconds": 300,
+    "load_shedding_priority": [
+      "hvac_non_critical",
+      "general_lighting",
+      "office_equipment",
+      "lab_non_essential",
+      "hostel_loads"
+    ],
+    "frequency_droop_coefficient": 0.04,
+    "voltage_droop_coefficient": 0.02
+  },
+  "protection": {
+    "over_frequency_hz": 50.5,
+    "under_frequency_hz": 49.5,
+    "over_voltage_pu": 1.1,
+    "under_voltage_pu": 0.9,
+    "over_current_ratio": 1.5,
+    "reconnection_voltage_window_pu": [
+      0.95,
+      1.05
+    ],
+    "reconnection_frequency_window_hz": [
+      49.8,
+      50.2
+    ]
+  }
+}

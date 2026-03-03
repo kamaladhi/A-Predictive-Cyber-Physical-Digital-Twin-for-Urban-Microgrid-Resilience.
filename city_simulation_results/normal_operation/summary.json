@@ -1,0 +1,17 @@
+{
+  "scenario_id": "normal_op_001",
+  "scenario_name": "Normal Operation",
+  "final_metrics": {
+    "city_survivability_index": 1.0,
+    "critical_load_preservation_ratio": 1.0,
+    "total_unserved_energy_kwh": 0.0,
+    "critical_unserved_energy_kwh": 0.0,
+    "priority_violation_count": 0,
+    "recovery_time_hours": 0.0,
+    "state_estimation_confidence": 0.9024490604773142
+  },
+  "recommendations": [
+    "Excellent resilience performance. System meets target thresholds."
+  ],
+  "execution_timestamp": "2026-01-28T23:49:06.472206"
+}
